@@ -526,10 +526,10 @@ void test_event()
 
     scriba_addEvent("Test event #1", companies->id, people1->id,
                     projects->id, EVENT_TYPE_MEETING, "Cancelled",
-                    cur_time);
+                    cur_time, EVENT_STATE_CANCELLED);
     scriba_addEvent("Test event #2", companies->next->id, people2->id,
                     projects->next->id, EVENT_TYPE_CALL, "Missed",
-                    cur_time + 100);
+                    cur_time + 100, EVENT_STATE_COMPLETED);
 
     events = scriba_getAllEvents();
     CU_ASSERT_FALSE(scriba_list_is_empty(events));
@@ -554,6 +554,7 @@ void test_event()
     CU_ASSERT_EQUAL(event1->type, EVENT_TYPE_MEETING);
     CU_ASSERT_STRING_EQUAL(event1->outcome, "Cancelled");
     CU_ASSERT_EQUAL(event1->timestamp, cur_time);
+    CU_ASSERT_EQUAL(event1->state, EVENT_STATE_CANCELLED);
 
     scriba_list_delete(events);
 
@@ -570,6 +571,7 @@ void test_event()
     CU_ASSERT_EQUAL(event2->type, EVENT_TYPE_CALL);
     CU_ASSERT_STRING_EQUAL(event2->outcome, "Missed");
     CU_ASSERT_EQUAL(event2->timestamp, cur_time + 100);
+    CU_ASSERT_EQUAL(event2->state, EVENT_STATE_COMPLETED);
 
     scriba_list_delete(events);
     scriba_freeEventData(event2);
@@ -588,9 +590,11 @@ void test_event()
     CU_ASSERT_EQUAL(event2->type, EVENT_TYPE_CALL);
     CU_ASSERT_STRING_EQUAL(event2->outcome, "Missed");
     CU_ASSERT_EQUAL(event2->timestamp, cur_time + 100);
+    CU_ASSERT_EQUAL(event2->state, EVENT_STATE_COMPLETED);
 
     // update the second event and verify
     event2->type = EVENT_TYPE_TASK;
+    event2->state = EVENT_STATE_SCHEDULED;
     scriba_updateEvent(event2);
     event3 = scriba_getEvent(events->id);
     CU_ASSERT_PTR_NOT_NULL(event3);
@@ -602,6 +606,7 @@ void test_event()
     CU_ASSERT_EQUAL(event3->type, EVENT_TYPE_TASK);
     CU_ASSERT_STRING_EQUAL(event3->outcome, "Missed");
     CU_ASSERT_EQUAL(event3->timestamp, cur_time + 100);
+    CU_ASSERT_EQUAL(event3->state, EVENT_STATE_SCHEDULED);
 
     // copy event data and verify
     event4 = scriba_copyEvent(event3);
@@ -615,6 +620,7 @@ void test_event()
     CU_ASSERT_EQUAL(event4->type, EVENT_TYPE_TASK);
     CU_ASSERT_STRING_EQUAL(event4->outcome, "Missed");
     CU_ASSERT_EQUAL(event4->timestamp, cur_time + 100);
+    CU_ASSERT_EQUAL(event4->state, EVENT_STATE_SCHEDULED);
     scriba_freeEventData(event4);
     event4 = NULL;
 

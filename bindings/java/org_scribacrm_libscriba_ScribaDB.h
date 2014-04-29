@@ -258,10 +258,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsBy
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    addEvent
- * Signature: (Ljava/lang/String;JJJBLjava/lang/String;J)V
+ * Signature: (Ljava/lang/String;JJJBLjava/lang/String;JB)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addEvent
-  (JNIEnv *, jclass, jstring, jlong, jlong, jlong, jbyte, jstring, jlong);
+  (JNIEnv *, jclass, jstring, jlong, jlong, jlong, jbyte, jstring, jlong, jbyte);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB

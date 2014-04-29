@@ -29,7 +29,7 @@ static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
 static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
-                     scriba_time_t timestamp);
+                     scriba_time_t timestamp, enum ScribaEventState state);
 static void updateEvent(const struct ScribaEvent *event);
 static void removeEvent(scriba_id_t id);
 static void free_event_data(struct ScribaEvent *event);
@@ -529,7 +529,7 @@ static scriba_list_t *getEventsByProject(scriba_id_t id)
 
 static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
-                     scriba_time_t timestamp)
+                     scriba_time_t timestamp, enum ScribaEventState state)
 {
     struct ScribaEvent *new_event = (struct ScribaEvent *)malloc(sizeof (struct ScribaEvent));
     int len = 0;
@@ -554,6 +554,7 @@ static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_
         strncpy(new_event->outcome, outcome, len);
     }
     new_event->timestamp = timestamp;
+    new_event->state = state;
 
     if (mockData.events == NULL)
     {

@@ -38,9 +38,9 @@ scriba_list_t *scriba_getEventsByProject(scriba_id_t id)
 // add new event to the database
 void scriba_addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
-                     scriba_time_t timestamp)
+                     scriba_time_t timestamp, enum ScribaEventState state)
 {
-    fTbl->addEvent(descr, company_id, poc_id, project_id, type, outcome, timestamp);
+    fTbl->addEvent(descr, company_id, poc_id, project_id, type, outcome, timestamp, state);
 }
 
 // update event info
@@ -86,6 +86,7 @@ struct ScribaEvent *scriba_copyEvent(const struct ScribaEvent *event)
         strncpy(ret->outcome, event->outcome, len);
     }
     ret->timestamp = event->timestamp;
+    ret->state = event->state;
 
     return ret;
 }

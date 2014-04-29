@@ -53,7 +53,7 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getEventsByProject)(scriba_id_t);
     void (*addEvent)(const char *, scriba_id_t, scriba_id_t,
                      scriba_id_t, enum ScribaEventType, const char *,
-                     scriba_time_t);
+                     scriba_time_t, enum ScribaEventState);
     void (*updateEvent)(const struct ScribaEvent *);
     void (*removeEvent)(scriba_id_t);
 };

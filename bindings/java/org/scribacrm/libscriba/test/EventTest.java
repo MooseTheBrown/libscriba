@@ -67,9 +67,11 @@ public class EventTest {
         Date cur_date = new Date();
         _cur_ts = cur_date.getTime() / 1000; // in seconds
         ScribaDB.addEvent("Blahblah", _company1_id, _poc1_id, _project1_id,
-                          Event.Type.TASK, "Nothing useful", _cur_ts);
+                          Event.Type.TASK, "Nothing useful", _cur_ts,
+                          Event.State.SCHEDULED);
         ScribaDB.addEvent("Lunch", _company2_id, _poc2_id, _project2_id,
-                          Event.Type.MEETING, "Everyone's velvet", _cur_ts + 500);
+                          Event.Type.MEETING, "Everyone's velvet", _cur_ts + 500,
+                          Event.State.COMPLETED);
     }
 
     @After
@@ -98,6 +100,7 @@ public class EventTest {
         assertEquals("Event type match", Event.Type.TASK, event.type);
         assertTrue("Event outcome match", event.outcome.equals("Nothing useful"));
         assertEquals("Event timestamp match", _cur_ts, event.timestamp);
+        assertEquals("Event state match", Event.State.SCHEDULED, event.state);
     }
 
     @Test
@@ -130,11 +133,15 @@ public class EventTest {
         Event event = ScribaDB.getEvent(events[0].id);
         Event updated_event = new Event(event.id, event.descr, event.company_id,
                                         event.poc_id, event.project_id, Event.Type.CALL,
-                                        "Still nothing useful", event.timestamp);
+                                        "Still nothing useful", event.timestamp,
+                                        Event.State.CANCELLED);
         ScribaDB.updateEvent(updated_event);
         Event check_event = ScribaDB.getEvent(events[0].id);
         assertEquals("event type should be updated", Event.Type.CALL, check_event.type);
         assertTrue("outcome should be updated", check_event.outcome.equals("Still nothing useful"));
+        assertEquals("event state should be updated",
+                     Event.State.CANCELLED,
+                     check_event.state);
     }
 
     @Test

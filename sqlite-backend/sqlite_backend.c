@@ -29,10 +29,11 @@
     "project_id INTEGER,"\
     "type INTEGER,"\
     "outcome TEXT,"\
-    "timestamp INTEGER"\
+    "timestamp INTEGER,"\
+    "state INTEGER"\
     ")"\
 
-#define EVENT_TABLE_COLUMNS 8
+#define EVENT_TABLE_COLUMNS 9
 
 #define CREATE_POC_TABLE "CREATE TABLE People"\
     "("\
@@ -112,7 +113,8 @@ static void removeCompany(scriba_id_t id);
 static struct ScribaEvent *fillEventData(scriba_id_t id, const char *descr,
                                          scriba_id_t company_id, scriba_id_t poc_id,
                                          scriba_id_t project_id, enum ScribaEventType type,
-                                         const char *outcome, scriba_time_t timestamp);
+                                         const char *outcome, scriba_time_t timestamp,
+                                         enum ScribaEventState state);
 
 // common event search routine
 static scriba_list_t *eventSearch(const char *query, scriba_id_t id);
@@ -125,7 +127,7 @@ static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
 static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
-                     scriba_time_t timestamp);
+                     scriba_time_t timestamp, enum ScribaEventState state);
 static void updateEvent(const struct ScribaEvent *event);
 static void removeEvent(scriba_id_t id);
 
@@ -767,7 +769,8 @@ exit:
 static struct ScribaEvent *fillEventData(scriba_id_t id, const char *descr,
                                          scriba_id_t company_id, scriba_id_t poc_id,
                                          scriba_id_t project_id, enum ScribaEventType type,
-                                         const char *outcome, scriba_time_t timestamp)
+                                         const char *outcome, scriba_time_t timestamp,
+                                         enum ScribaEventState state)
 {
     int len = 0;
     struct ScribaEvent *ret = (struct ScribaEvent *)malloc(sizeof (struct ScribaEvent));
@@ -796,6 +799,7 @@ static struct ScribaEvent *fillEventData(scriba_id_t id, const char *descr,
         strcpy(ret->outcome, outcome);
     }
     ret->timestamp = timestamp;
+    ret->state = state;
 
     return ret;
 }
@@ -923,9 +927,11 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
     enum ScribaEventType type = (enum ScribaEventType)sqlite3_column_int(stmt, 5);
     const char *outcome = sqlite3_column_text(stmt, 6);
     scriba_time_t timestamp = (scriba_time_t)sqlite3_column_int64(stmt, 7);
+    enum ScribaEventState state = (enum ScribaEventState)sqlite3_column_int64(stmt, 8);
 
     struct ScribaEvent *event = fillEventData(id, descr, company_id, poc_id,
-                                              project_id, type, outcome, timestamp);
+                                              project_id, type, outcome, timestamp,
+                                              state);
     sqlite3_finalize(stmt);
     return event;
 
@@ -1018,10 +1024,10 @@ static scriba_list_t *getEventsByProject(scriba_id_t id)
 
 static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
-                     scriba_time_t timestamp)
+                     scriba_time_t timestamp, enum ScribaEventState state)
 {
-    char query[] = "INSERT INTO Events (descr,company_id,poc_id,project_id,type,outcome, timestamp)"
-                   "VALUES (?,?,?,?,?,?,?)";
+    char query[] = "INSERT INTO Events (descr,company_id,poc_id,project_id,type,outcome, timestamp, state)"
+                   "VALUES (?,?,?,?,?,?,?,?)";
     sqlite3_stmt *stmt = NULL;
 
     if (data == NULL)
@@ -1062,6 +1068,10 @@ static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_
     {
         goto exit;
     }
+    if (sqlite3_bind_int64(stmt, 8, (sqlite_int64)state) != SQLITE_OK)
+    {
+        goto exit;
+    }
 
     // execute query
     while (1)
@@ -1088,7 +1098,7 @@ exit:
 static void updateEvent(const struct ScribaEvent *event)
 {
     char query[] = "UPDATE Events SET descr=?,company_id=?,poc_id=?,project_id=?,"
-                   "type=?,outcome=? WHERE id=?";
+                   "type=?,outcome=?,timestamp=?,state=? WHERE id=?";
     sqlite3_stmt *stmt = NULL;
 
     if ((event == NULL) || (data == NULL))
@@ -1125,7 +1135,15 @@ static void updateEvent(const struct ScribaEvent *event)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 7, (sqlite3_int64)(event->id)) != SQLITE_OK)
+    if (sqlite3_bind_int64(stmt, 7, (sqlite3_int64)(event->timestamp)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 8, (sqlite3_int64)(event->state)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 9, (sqlite3_int64)(event->id)) != SQLITE_OK)
     {
         goto exit;
     }

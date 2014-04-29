@@ -127,7 +127,8 @@ public class CompanyTest {
         long project_id = project[0].id;
 
         ScribaDB.addEvent("Status meeting", company_id, poc1_id, project_id, 
-                          Event.Type.MEETING, "Discussed Byzantine empire", 0);
+                          Event.Type.MEETING, "Discussed Byzantine empire", 0,
+                          Event.State.SCHEDULED);
         DataDescriptor[] event = ScribaDB.getEventsByCompany(company_id);
         long event_id = event[0].id;
 

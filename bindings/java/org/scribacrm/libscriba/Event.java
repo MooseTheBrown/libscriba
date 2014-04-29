@@ -8,6 +8,12 @@ public final class Event {
         public static final byte TASK = 2;
     }
 
+    public static class State {
+        public static final byte SCHEDULED = 0;
+        public static final byte COMPLETED = 1;
+        public static final byte CANCELLED = 2;
+    }
+
     public final long id;
     public final String descr;
     public final long company_id;
@@ -16,9 +22,10 @@ public final class Event {
     public final byte type;
     public final String outcome;
     public final long timestamp;
+    public final byte state;
 
     public Event(long id, String descr, long company_id, long poc_id, long project_id,
-                 byte type, String outcome, long timestamp) {
+                 byte type, String outcome, long timestamp, byte state) {
         this.id = id;
         this.descr = descr;
         this.company_id = company_id;
@@ -27,5 +34,6 @@ public final class Event {
         this.type = type;
         this.outcome = outcome;
         this.timestamp = timestamp;
+        this.state = state;
     }
 }

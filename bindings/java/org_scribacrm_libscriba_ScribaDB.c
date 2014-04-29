@@ -1184,7 +1184,7 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEvent(JNIEnv 
     }
 
     event_ctor_id = (*env)->GetMethodID(env, event_class, "<init>",
-                                     "(JLjava/lang/String;JJJBLjava/lang/String;J)V");
+                                     "(JLjava/lang/String;JJJBLjava/lang/String;JB)V");
     if (event_ctor_id == NULL)
     {
         goto exit;
@@ -1196,7 +1196,8 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEvent(JNIEnv 
     java_event = (*env)->NewObject(env, event_class, event_ctor_id,
                                 id, java_descr, (jlong)(event->company_id),
                                 (jlong)(event->poc_id), (jlong)(event->project_id),
-                                (jbyte)(event->type), java_outcome, (jlong)(event->timestamp));
+                                (jbyte)(event->type), java_outcome, (jlong)(event->timestamp),
+                                (jbyte)(event->state));
 
 exit:
     if (event != NULL)
@@ -1276,14 +1277,15 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addEvent(JNIEnv *en
                                                                       jlong project_id,
                                                                       jbyte type,
                                                                       jstring outcome,
-                                                                      jlong timestamp)
+                                                                      jlong timestamp,
+                                                                      jbyte state)
 {
     char *native_descr = java_string_to_utf8(env, this, descr);
     char *native_outcome = java_string_to_utf8(env, this, outcome);
 
     scriba_addEvent(native_descr, (scriba_id_t)company_id, (scriba_id_t)poc_id,
                     (scriba_id_t)project_id, (enum ScribaEventType)type, native_outcome,
-                    (scriba_time_t)timestamp);
+                    (scriba_time_t)timestamp, (enum ScribaEventState)state);
 
     if (native_descr != NULL)
     {
@@ -1373,6 +1375,20 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateEvent(JNIEnv 
     }
     event->outcome = java_string_to_utf8(env, this,
                                          (jstring)((*env)->GetObjectField(env, java_event, fieldID)));
+
+    fieldID = (*env)->GetFieldID(env, event_class, "timestamp", "J");
+    if (fieldID == NULL)
+    {
+        goto exit;
+    }
+    event->timestamp = (scriba_time_t)((*env)->GetLongField(env, java_event, fieldID));
+
+    fieldID = (*env)->GetFieldID(env, event_class, "state", "B");
+    if (fieldID == NULL)
+    {
+        goto exit;
+    }
+    event->state = (enum ScribaEventState)((*env)->GetByteField(env, java_event, fieldID));
 
     scriba_updateEvent(event);
 
