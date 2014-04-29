@@ -1,0 +1,3 @@
+#!/bin/sh
+
+java -Djava.library.path=./ -cp ./libscriba.jar:./libscriba-java-test.jar:${JUNIT4_JAR_PATH} org.junit.runner.JUnitCore org.scribacrm.libscriba.test.JavaBindingsSuite

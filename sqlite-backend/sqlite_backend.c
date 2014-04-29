@@ -1,0 +1,2249 @@
+#include "sqlite_backend.h"
+#include "sqlite3.h"
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+
+
+// database tables structure
+#define CREATE_COMPANY_TABLE "CREATE TABLE Companies"\
+    "("\
+    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "name TEXT,"\
+    "jur_name TEXT,"\
+    "address TEXT,"\
+    "inn TEXT,"\
+    "phonenum TEXT,"\
+    "email TEXT"\
+    ")"
+
+#define COMPANY_TABLE_COLUMNS 7
+
+#define CREATE_EVENT_TABLE "CREATE TABLE Events"\
+    "("\
+    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "descr TEXT,"\
+    "company_id INTEGER,"\
+    "poc_id INTEGER,"\
+    "project_id INTEGER,"\
+    "type INTEGER,"\
+    "outcome TEXT,"\
+    "timestamp INTEGER"\
+    ")"\
+
+#define EVENT_TABLE_COLUMNS 8
+
+#define CREATE_POC_TABLE "CREATE TABLE People"\
+    "("\
+    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "firstname TEXT,"\
+    "secondname TEXT,"\
+    "lastname TEXT,"\
+    "mobilenum TEXT,"\
+    "phonenum TEXT,"\
+    "email TEXT,"\
+    "position TEXT,"\
+    "company_id INTEGER"\
+    ")"
+
+#define POC_TABLE_COLUMNS 9
+
+#define CREATE_PROJECT_TABLE "CREATE TABLE Projects"\
+    "("\
+    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "title TEXT,"\
+    "descr TEXT,"\
+    "company_id INTEGER,"\
+    "state INTEGER"\
+    ")"
+
+#define PROJECT_TABLE_COLUMNS 5
+
+struct ScribaSQLite
+{
+    sqlite3 *db;
+    char *db_filename;
+} *data = NULL;
+
+
+
+struct ScribaInternalDB sqliteDB = 
+{
+    SCRIBA_SQLITE_BACKEND_NAME,
+    scriba_sqlite_init,
+    scriba_sqlite_cleanup
+};
+
+
+
+// backend init and cleanup
+int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTbl);
+void scriba_sqlite_cleanup();
+
+
+
+// process parameter list; returns 0 on success, 1 on failure
+static int parse_param_list(struct ScribaDBParamList *pl);
+// create new database; returns 0 on success, 1 on failure
+static int create_database();
+
+// create company data structure based on given parameters
+static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
+                                             const char *jur_name, const char *addr,
+                                             scriba_inn_t inn, const char *phonenum,
+                                             const char *email);
+
+// common company search routine
+static scriba_list_t *companySearch(const char *query, const char *text);
+
+// company handling interface functions
+static struct ScribaCompany *getCompany(scriba_id_t id);
+static scriba_list_t *getAllCompanies();
+static scriba_list_t *getCompaniesByName(const char *name);
+static scriba_list_t *getCompaniesByJurName(const char *juridicial_name);
+static scriba_list_t *getCompaniesByAddress(const char *address);
+static void addCompany(const char *name, const char *jur_name, const char *address,
+                       scriba_inn_t inn, const char *phonenum, const char *email);
+static void updateCompany(const struct ScribaCompany *company);
+static void removeCompany(scriba_id_t id);
+
+// create event data structure based on given parameters
+static struct ScribaEvent *fillEventData(scriba_id_t id, const char *descr,
+                                         scriba_id_t company_id, scriba_id_t poc_id,
+                                         scriba_id_t project_id, enum ScribaEventType type,
+                                         const char *outcome, scriba_time_t timestamp);
+
+// common event search routine
+static scriba_list_t *eventSearch(const char *query, scriba_id_t id);
+
+// event handling interface functions
+static struct ScribaEvent *getEvent(scriba_id_t id);
+static scriba_list_t *getAllEvents();
+static scriba_list_t *getEventsByCompany(scriba_id_t id);
+static scriba_list_t *getEventsByPOC(scriba_id_t id);
+static scriba_list_t *getEventsByProject(scriba_id_t id);
+static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
+                     scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
+                     scriba_time_t timestamp);
+static void updateEvent(const struct ScribaEvent *event);
+static void removeEvent(scriba_id_t id);
+
+// create POC data structure based on given parameters
+static struct ScribaPoc *fillPOCData(scriba_id_t id, const char *firstname,
+                                     const char *secondname, const char *lastname,
+                                     const char *mobilenum, const char *phonenum,
+                                     const char *email, const char *position,
+                                     scriba_id_t company_id);
+
+// combine POC first, second and last names into a single string
+static char *combine_poc_names(const char *firstname,
+                               const char *secondname,
+                               const char *lastname);
+
+// POC search by string routine
+static scriba_list_t *pocSearchByStr(const char *query, const char *str);
+
+// POC handling interface functions
+static struct ScribaPoc *getPOC(scriba_id_t id);
+static scriba_list_t *getAllPeople();
+static scriba_list_t *getPOCByName(const char *firstname,
+                                   const char *secondname,
+                                   const char *lastname);
+static scriba_list_t *getPOCByCompany(scriba_id_t id);
+static scriba_list_t *getPOCByPosition(const char *position);
+static scriba_list_t *getPOCByPhoneNum(const char *phonenum);
+static scriba_list_t *getPOCByEmail(const char *email);
+static void addPOC(const char *firstname, const char *secondname, const char *lastname,
+                   const char *mobilenum, const char *phonenum, const char *email,
+                   const char *position, scriba_id_t company_id);
+static void updatePOC(const struct ScribaPoc *poc);
+static void removePOC(scriba_id_t id);
+
+// create project data structure based on given parameters
+static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, const char *descr,
+                                             scriba_id_t company_id, enum ScribaProjectState state);
+
+// common project search routine
+static scriba_list_t *projectSearch(sqlite3_stmt *stmt);
+
+// project handling interface functions
+static struct ScribaProject *getProject(scriba_id_t id);
+static scriba_list_t *getAllProjects();
+static scriba_list_t *getProjectsByCompany(scriba_id_t id);
+static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
+static void addProject(const char *title, const char *descr, scriba_id_t company_id,
+                       enum ScribaProjectState state);
+static void updateProject(const struct ScribaProject *project);
+static void removeProject(scriba_id_t id);
+
+
+
+int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTbl)
+{
+    if ((pl == NULL) || (fTbl == NULL))
+    {
+        goto error;
+    }
+
+    data = (struct ScribaSQLite *)malloc(sizeof (struct ScribaSQLite));
+    memset(data, 0, sizeof (struct ScribaSQLite));
+
+    if (parse_param_list(pl) != 0)
+    {
+        goto error;
+    }
+
+    // try to open database file using filename received via param list
+    int err = sqlite3_open_v2(data->db_filename, &data->db, SQLITE_OPEN_READWRITE, NULL);
+    if (err == SQLITE_CANTOPEN)
+    {
+        sqlite3_close(data->db);
+        // given database does not exist, create new one
+        if(create_database() != 0)
+        {
+            goto error;
+        }
+    }
+    else if (err != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    fTbl->getCompany = getCompany;
+    fTbl->getAllCompanies = getAllCompanies;
+    fTbl->getCompaniesByName = getCompaniesByName;
+    fTbl->getCompaniesByJurName = getCompaniesByJurName;
+    fTbl->getCompaniesByAddress = getCompaniesByAddress;
+    fTbl->addCompany = addCompany;
+    fTbl->updateCompany = updateCompany;
+    fTbl->removeCompany = removeCompany;
+    fTbl->getEvent = getEvent;
+    fTbl->getAllEvents = getAllEvents;
+    fTbl->getEventsByCompany = getEventsByCompany;
+    fTbl->getEventsByPOC = getEventsByPOC;
+    fTbl->getEventsByProject = getEventsByProject;
+    fTbl->addEvent = addEvent;
+    fTbl->updateEvent = updateEvent;
+    fTbl->removeEvent = removeEvent;
+    fTbl->getPOC = getPOC;
+    fTbl->getAllPeople = getAllPeople;
+    fTbl->getPOCByName = getPOCByName;
+    fTbl->getPOCByCompany = getPOCByCompany;
+    fTbl->getPOCByPosition = getPOCByPosition;
+    fTbl->getPOCByPhoneNum = getPOCByPhoneNum;
+    fTbl->getPOCByEmail = getPOCByEmail;
+    fTbl->addPOC = addPOC;
+    fTbl->updatePOC = updatePOC;
+    fTbl->removePOC = removePOC;
+    fTbl->getProject = getProject;
+    fTbl->getAllProjects = getAllProjects;
+    fTbl->getProjectsByCompany = getProjectsByCompany;
+    fTbl->getProjectsByState = getProjectsByState;
+    fTbl->addProject = addProject;
+    fTbl->updateProject = updateProject;
+    fTbl->removeProject = removeProject;
+
+success:
+    return 0;
+
+error:
+    if (data != NULL)
+    {
+        if (data->db != NULL)
+        {
+            sqlite3_close(data->db);
+        }
+    }
+
+    return 1;
+}
+
+void scriba_sqlite_cleanup()
+{
+    if (data != NULL)
+    {
+        if (data->db_filename != NULL)
+        {
+            free(data->db_filename);
+        }
+
+        if (data->db != NULL)
+        {
+            sqlite3_close(data->db);
+        }
+
+        free(data);
+        data = NULL;
+    }
+}
+
+static int parse_param_list(struct ScribaDBParamList *pl)
+{
+    int name_found = 0;
+
+    do
+    {
+        struct ScribaDBParam *param = pl->param;
+        if ((param->key == NULL) || (param->value == NULL))
+        {
+            continue;
+        }
+        else if ((strlen(param->key) == 0) || (strlen(param->value) == 0))
+        {
+            continue;
+        }
+
+        if (strcmp(param->key, SCRIBA_SQLITE_DB_LOCATION_PARAM) == 0)
+        {
+            name_found = 1;
+            int len = strlen(param->value);
+            data->db_filename = (char *)malloc(len + 1);
+            memset(data->db_filename, 0, len + 1);
+            strcpy(data->db_filename, param->value);
+        }
+
+        pl = pl->next;
+    } while (pl != NULL);
+ 
+    return !name_found;
+}
+
+// create new database; returns 0 on success, 1 on failure
+static int create_database()
+{
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    if (sqlite3_open_v2(data->db_filename, &(data->db),
+                        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    if (sqlite3_exec(data->db, CREATE_COMPANY_TABLE, NULL, NULL, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_exec(data->db, CREATE_EVENT_TABLE, NULL, NULL, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_exec(data->db, CREATE_POC_TABLE, NULL, NULL, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_exec(data->db, CREATE_PROJECT_TABLE, NULL, NULL, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+success:
+    return 0;
+
+error:
+    return 1;
+}
+
+// create company data structure based on given parameters
+static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
+                                             const char *jur_name, const char *addr,
+                                             scriba_inn_t inn, const char *phonenum,
+                                             const char *email)
+{
+    int len = 0;
+    struct ScribaCompany *company = (struct ScribaCompany *)malloc(sizeof (struct ScribaCompany));
+    if (company == NULL)
+    {
+        return NULL;
+    }
+    memset((void *)company, 0, sizeof (struct ScribaCompany));
+
+    company->id = id;
+    if (name != NULL)
+    {
+        len = strlen(name);
+        if (len != 0)
+        {
+            company->name = (char *)malloc(len + 1);
+            strcpy(company->name, name);
+        }
+    }
+    if (jur_name != NULL)
+    {
+        len = strlen(jur_name);
+        if (len != 0)
+        {
+            company->jur_name = (char *)malloc(len + 1);
+            strcpy(company->jur_name, jur_name);
+        }
+    }
+    if (addr != NULL)
+    {
+        len = strlen(addr);
+        if (len != 0)
+        {
+            company->address = (char *)malloc(len + 1);
+            strcpy(company->address, addr);
+        }
+    }
+    scriba_copy_inn(&(company->inn), &inn);
+    if (phonenum != NULL)
+    {
+        len = strlen(phonenum);
+        if (len != 0)
+        {
+            company->phonenum = (char *)malloc(len + 1);
+            strcpy(company->phonenum, phonenum);
+        }
+    }
+    if (email != NULL)
+    {
+        len = strlen(email);
+        if (len != 0)
+        {
+            company->email = (char *)malloc(len + 1);
+            strcpy(company->email, email);
+        }
+    }
+
+    return company;
+}
+
+// common company search routine
+static scriba_list_t *companySearch(const char *query, const char *text)
+{
+    scriba_list_t *companies = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+    char *company_name = NULL;
+
+    if ((query == NULL) || (data == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    // if text is NULL, we assume the query does not contain any placeholders
+    if (text != NULL)
+    {
+        if (sqlite3_bind_text(stmt, 1, text, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            // id and name fields should be selected from the table
+            scriba_id_t id = scriba_id_from_string(sqlite3_column_text(stmt, 0));
+            const char *name = sqlite3_column_text(stmt, 1);
+            if (name != NULL)
+            {
+                int len = strlen(name);
+                company_name = (char *)malloc(len + 1);
+                strcpy(company_name, name);
+                company_name[len] = 0;
+                scriba_list_add(companies, id, company_name);
+                free(company_name);
+            }
+            else
+            {
+                scriba_list_add(companies, id, NULL);
+            }
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return companies;
+}
+
+// company search functions
+static struct ScribaCompany *getCompany(scriba_id_t id)
+{
+    struct ScribaCompany *company = NULL;
+    char query[512];
+    sqlite3_stmt *sqlite_stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    // prepare query
+    sprintf(query, "SELECT * FROM Companies WHERE id=%d", id);
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &sqlite_stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(sqlite_stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            break;
+        }
+        else
+        {
+            // something went wrong or simply nothing was found
+            goto error;
+        }
+    }
+
+    if (sqlite3_column_count(sqlite_stmt) != COMPANY_TABLE_COLUMNS)
+    {
+        goto error;
+    }
+
+    const char *name = (const char *)sqlite3_column_text(sqlite_stmt, 1);
+    const char *jur_name = (const char *)sqlite3_column_text(sqlite_stmt, 2);
+    const char *address = (const char *)sqlite3_column_text(sqlite_stmt, 3);
+    scriba_inn_t inn = scriba_inn_from_string((const char *)sqlite3_column_text(sqlite_stmt, 4));
+    const char *phonenum = (const char *)sqlite3_column_text(sqlite_stmt, 5);
+    const char *email = (const char *)sqlite3_column_text(sqlite_stmt, 6);
+
+    company = fillCompanyData(id, name, jur_name, address, inn, phonenum, email);
+    company->poc_list = getPOCByCompany(id);
+    company->proj_list = getProjectsByCompany(id);
+    company->event_list = getEventsByCompany(id);
+
+    sqlite3_finalize(sqlite_stmt);
+    return company;
+
+error:
+    if (company != NULL)
+    {
+        free(company);
+    }
+    if (sqlite_stmt != NULL)
+    {
+        sqlite3_finalize(sqlite_stmt);
+    }
+
+    return NULL;
+}
+
+static scriba_list_t *getAllCompanies()
+{
+    return companySearch("SELECT id, name FROM Companies", NULL);
+}
+
+static scriba_list_t *getCompaniesByName(const char *name)
+{
+    return companySearch("SELECT id, name FROM Companies WHERE name=?", name);
+}
+
+static scriba_list_t *getCompaniesByJurName(const char *juridicial_name)
+{
+    return companySearch("SELECT id, name FROM Companies WHERE jur_name=?", juridicial_name);
+}
+
+static scriba_list_t *getCompaniesByAddress(const char *address)
+{
+    return companySearch("SELECT id, name FROM Companies WHERE address=?", address);
+}
+
+static void addCompany(const char *name, const char *jur_name, const char *address,
+                       scriba_inn_t inn, const char *phonenum, const char *email)
+{
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "INSERT INTO Companies(name, jur_name, address, inn, phonenum, email) "
+                   "VALUES(?,?,?,?,?,?)";
+    char *inn_str = NULL;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 2, jur_name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 3, address, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    inn_str = scriba_inn_to_string(&inn);
+    if (sqlite3_bind_text(stmt, 4, inn_str, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 5, phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 6, email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (inn_str != NULL)
+    {
+        free(inn_str);
+    }
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void updateCompany(const struct ScribaCompany *company)
+{
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "UPDATE Companies SET name=?,jur_name=?,address=?,inn=?,phonenum=?,email=?"
+                   "WHERE id=?";
+    char *inn_str = NULL;
+
+    if ((company == NULL) || (data == NULL))
+    {
+        goto exit;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query , -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, company->name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 2, company->jur_name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 3, company->address, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    inn_str = scriba_inn_to_string(&(company->inn));
+    if (sqlite3_bind_text(stmt, 4, inn_str, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 5, company->phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 6, company->email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 7, (sqlite3_int64)company->id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (inn_str != NULL)
+    {
+        free(inn_str);
+    }
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void removeCompany(scriba_id_t id)
+{
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "DELETE FROM Companies WHERE id=?";
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+// create event data structure based on given parameters
+static struct ScribaEvent *fillEventData(scriba_id_t id, const char *descr,
+                                         scriba_id_t company_id, scriba_id_t poc_id,
+                                         scriba_id_t project_id, enum ScribaEventType type,
+                                         const char *outcome, scriba_time_t timestamp)
+{
+    int len = 0;
+    struct ScribaEvent *ret = (struct ScribaEvent *)malloc(sizeof (struct ScribaEvent));
+
+    if (ret == NULL)
+    {
+        return NULL;
+    }
+    memset(ret, 0, sizeof (struct ScribaEvent));
+
+    ret->id = id;
+    if (descr != NULL)
+    {
+        len = strlen(descr);
+        ret->descr = (char *)malloc(len + 1);
+        strcpy(ret->descr, descr);
+    }
+    ret->company_id = company_id;
+    ret->poc_id = poc_id;
+    ret->project_id = project_id;
+    ret->type = type;
+    if (outcome != NULL)
+    {
+        len = strlen(outcome);
+        ret->outcome = (char *)malloc(len + 1);
+        strcpy(ret->outcome, outcome);
+    }
+    ret->timestamp = timestamp;
+
+    return ret;
+}
+
+// common event search routine
+static scriba_list_t *eventSearch(const char *query, scriba_id_t id)
+{
+    scriba_list_t *events = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+
+    if ((data == NULL) || (query == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query and retrieve results
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            // event id and description fields are selected from the table
+            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            const char *descr = sqlite3_column_text(stmt, 1);
+            int len = strlen(descr);
+            if (len > 0)
+            {
+                char *event_descr = (char *)malloc(len + 1);
+                strcpy(event_descr, descr);
+                scriba_list_add(events, id, event_descr);
+                free(event_descr);
+            }
+            else
+            {
+                scriba_list_add(events, id, NULL);
+            }
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return events;
+}
+
+static struct ScribaEvent *getEvent(scriba_id_t id)
+{
+    char query[] = "SELECT * FROM Events WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto error;
+        }
+    }
+
+    if (sqlite3_column_count(stmt) != EVENT_TABLE_COLUMNS)
+    {
+        goto error;
+    }
+
+    const char *descr = sqlite3_column_text(stmt, 1);
+    scriba_id_t company_id = (scriba_id_t)sqlite3_column_int64(stmt, 2);
+    scriba_id_t poc_id = (scriba_id_t)sqlite3_column_int64(stmt, 3);
+    scriba_id_t project_id = (scriba_id_t)sqlite3_column_int64(stmt, 4);
+    enum ScribaEventType type = (enum ScribaEventType)sqlite3_column_int(stmt, 5);
+    const char *outcome = sqlite3_column_text(stmt, 6);
+    scriba_time_t timestamp = (scriba_time_t)sqlite3_column_int64(stmt, 7);
+
+    struct ScribaEvent *event = fillEventData(id, descr, company_id, poc_id,
+                                              project_id, type, outcome, timestamp);
+    sqlite3_finalize(stmt);
+    return event;
+
+error:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+
+    return NULL;
+}
+
+static scriba_list_t *getAllEvents()
+{
+    scriba_list_t *events = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "SELECT id,descr FROM Events";
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query and retrieve results
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            const char *descr = sqlite3_column_text(stmt, 1);
+            int len = strlen(descr);
+            if (len > 0)
+            {
+                char *event_descr = (char *)malloc(len + 1);
+                strcpy(event_descr, descr);
+                scriba_list_add(events, id, event_descr);
+                free(event_descr);
+            }
+            else
+            {
+                scriba_list_add(events, id, NULL);
+            }
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return events;
+}
+
+static scriba_list_t *getEventsByCompany(scriba_id_t id)
+{
+    return eventSearch("SELECT id,descr FROM Events WHERE company_id=?", id);
+}
+
+static scriba_list_t *getEventsByPOC(scriba_id_t id)
+{
+    return eventSearch("SELECT id,descr FROM Events WHERE poc_id=?", id);
+}
+
+static scriba_list_t *getEventsByProject(scriba_id_t id)
+{
+    return eventSearch("SELECT id,descr FROM Events WHERE project_id=?", id);
+}
+
+static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
+                     scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
+                     scriba_time_t timestamp)
+{
+    char query[] = "INSERT INTO Events (descr,company_id,poc_id,project_id,type,outcome, timestamp)"
+                   "VALUES (?,?,?,?,?,?,?)";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 2, (sqlite3_int64)company_id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)poc_id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 4, (sqlite3_int64)project_id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int(stmt, 5, (int)type) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 6, outcome, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 7, (sqlite_int64)timestamp) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void updateEvent(const struct ScribaEvent *event)
+{
+    char query[] = "UPDATE Events SET descr=?,company_id=?,poc_id=?,project_id=?,"
+                   "type=?,outcome=? WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if ((event == NULL) || (data == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, event->descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 2, (sqlite3_int64)(event->company_id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)(event->poc_id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 4, (sqlite3_int64)(event->project_id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int(stmt, 5, (int)(event->type)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 6, event->outcome, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 7, (sqlite3_int64)(event->id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void removeEvent(scriba_id_t id)
+{
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "DELETE FROM Events WHERE id=?";
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+// create POC data structure based on given parameters
+static struct ScribaPoc *fillPOCData(scriba_id_t id, const char *firstname,
+                                     const char *secondname, const char *lastname,
+                                     const char *mobilenum, const char *phonenum,
+                                     const char *email, const char *position,
+                                     scriba_id_t company_id)
+{
+    int len = 0;
+    struct ScribaPoc *poc = (struct ScribaPoc *)malloc(sizeof (struct ScribaPoc));
+    if (poc == NULL)
+    {
+        return NULL;
+    }
+
+    memset(poc, 0, sizeof (struct ScribaPoc));
+
+    poc->id = id;
+    if (firstname != NULL)
+    {
+        len = strlen(firstname);
+        poc->firstname = (char *)malloc(len + 1);
+        strcpy(poc->firstname, firstname);
+    }
+    if (secondname != NULL)
+    {
+        len = strlen(secondname);
+        poc->secondname = (char *)malloc(len + 1);
+        strcpy(poc->secondname, secondname);
+    }
+    if (lastname != NULL)
+    {
+        len = strlen(lastname);
+        poc->lastname = (char *)malloc(len + 1);
+        strcpy(poc->lastname, lastname);
+    }
+    if (mobilenum != NULL)
+    {
+        len = strlen(mobilenum);
+        poc->mobilenum = (char *)malloc(len + 1);
+        strcpy(poc->mobilenum, mobilenum);
+    }
+    if (phonenum != NULL)
+    {
+        len = strlen(phonenum);
+        poc->phonenum = (char *)malloc(len + 1);
+        strcpy(poc->phonenum, phonenum);
+    }
+    if (email != NULL)
+    {
+        len = strlen(email);
+        poc->email = (char *)malloc(len + 1);
+        strcpy(poc->email, email);
+    }
+    if (position != NULL)
+    {
+        len = strlen(position);
+        poc->position = (char *)malloc(len + 1);
+        strcpy(poc->position, position);
+    }
+    poc->company_id = company_id;
+
+    return poc;
+}
+
+// combine POC first, second and last names into a single string
+static char *combine_poc_names(const char *firstname,
+                               const char *secondname,
+                               const char *lastname)
+{
+    int len = strlen(firstname) + strlen(secondname) + strlen(lastname);
+    if (len == 0)
+    {
+        // nothing to combine
+        return NULL;
+    }
+
+    // we need two additional spaces and a null character
+    char *result = (char *)malloc(len + 3);
+    strcpy(result, firstname);
+    strcat(result, " ");
+    strcat(result, secondname);
+    strcat(result, " ");
+    strcat(result, lastname);
+
+    return result;
+}
+
+// POC search by string routine
+static scriba_list_t *pocSearchByStr(const char *query, const char *str)
+{
+    scriba_list_t *people = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+
+    if ((data == NULL) || (query == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (str != NULL)
+    {
+        if (sqlite3_bind_text(stmt, 1, str, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            const char *firstname = sqlite3_column_text(stmt, 1);
+            const char *secondname = sqlite3_column_text(stmt, 2);
+            const char *lastname = sqlite3_column_text(stmt, 3);
+            char *name = combine_poc_names(firstname, secondname, lastname);
+            scriba_list_add(people, id, name);
+            free(name);
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return people;
+}
+
+// POC handling interface functions
+static struct ScribaPoc *getPOC(scriba_id_t id)
+{
+    struct ScribaPoc *poc = NULL;
+    char query[] = "SELECT * FROM People WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto error;
+        }
+    }
+
+    if (sqlite3_column_count(stmt) != POC_TABLE_COLUMNS)
+    {
+        goto error;
+    }
+
+    scriba_id_t poc_id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+    const char *firstname = (const char *)sqlite3_column_text(stmt, 1);
+    const char *secondname = (const char *)sqlite3_column_text(stmt, 2);
+    const char *lastname = (const char *)sqlite3_column_text(stmt, 3);
+    const char *mobilenum = (const char *)sqlite3_column_text(stmt, 4);
+    const char *phonenum = (const char *)sqlite3_column_text(stmt, 5);
+    const char *email = (const char *)sqlite3_column_text(stmt, 6);
+    const char *position = (const char *)sqlite3_column_text(stmt, 7);
+    scriba_id_t company_id = (scriba_id_t)sqlite3_column_int64(stmt, 8);
+
+    poc = fillPOCData(poc_id, firstname, secondname, lastname, mobilenum, phonenum,
+                      email, position, company_id);
+    sqlite3_finalize(stmt);
+    return poc;
+
+error:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+
+    return NULL;
+}
+
+static scriba_list_t *getAllPeople()
+{
+    scriba_list_t *people = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+    char query[1024] = "SELECT id,firstname,secondname,lastname FROM People";
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            const char *firstname = sqlite3_column_text(stmt, 1);
+            const char *secondname = sqlite3_column_text(stmt, 2);
+            const char *lastname = sqlite3_column_text(stmt, 3);
+            char *name = combine_poc_names(firstname, secondname, lastname);
+            scriba_list_add(people, id, name);
+            free(name);
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return people;
+}
+
+static scriba_list_t *getPOCByName(const char *firstname,
+                                   const char *secondname,
+                                   const char *lastname)
+{
+    scriba_list_t *people = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+    char query[1024] = "SELECT id,firstname,secondname,lastname FROM People WHERE";
+    int secondname_pos = 2;
+    int lastname_pos = 3;
+    int max_len = 1024 - strlen(query) - 1;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+    if ((firstname == NULL) && (secondname == NULL) && (lastname == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (firstname != NULL)
+    {
+        strncat(query, " firstname=?", max_len);
+    }
+    else
+    {
+        // firstname is not provided, adjust second and last names' position in query
+        secondname_pos--;
+        lastname_pos--;
+    }
+    if (secondname != NULL)
+    {
+        if (secondname_pos == 1)
+        {
+            strncat(query, " secondname=?", max_len);
+        }
+        else
+        {
+            strncat(query, " AND secondname=?", max_len);
+        }
+    }
+    else
+    {
+        lastname_pos--;
+    }
+
+    if (lastname != NULL)
+    {
+        if (lastname_pos == 1)
+        {
+            strncat(query, " lastname=?", max_len);
+        }
+        else
+        {
+            strncat(query, " AND lastname=?", max_len);
+        }
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (firstname != NULL)
+    {
+        if (sqlite3_bind_text(stmt, 1, firstname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+    if (secondname != NULL)
+    {
+        if (sqlite3_bind_text(stmt, secondname_pos, secondname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+    if (lastname != NULL)
+    {
+        if (sqlite3_bind_text(stmt, lastname_pos, lastname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            const char *firstname = sqlite3_column_text(stmt, 1);
+            const char *secondname = sqlite3_column_text(stmt, 2);
+            const char *lastname = sqlite3_column_text(stmt, 3);
+            char *name = combine_poc_names(firstname, secondname, lastname);
+            scriba_list_add(people, id, name);
+            free(name);
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return people;
+}
+
+static scriba_list_t *getPOCByCompany(scriba_id_t id)
+{
+    scriba_list_t *people = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "SELECT id,firstname,secondname,lastname FROM People WHERE company_id=?";
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            const char *firstname = sqlite3_column_text(stmt, 1);
+            const char *secondname = sqlite3_column_text(stmt, 2);
+            const char *lastname = sqlite3_column_text(stmt, 3);
+            char *name = combine_poc_names(firstname, secondname, lastname);
+            scriba_list_add(people, id, name);
+            free(name);
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return people;
+}
+
+static scriba_list_t *getPOCByPosition(const char *position)
+{
+    return pocSearchByStr("SELECT id,firstname,secondname,lastname FROM People WHERE position=?",
+                          position);
+}
+
+static scriba_list_t *getPOCByPhoneNum(const char *phonenum)
+{
+    return pocSearchByStr("SELECT id,firstname,secondname,lastname FROM People WHERE phonenum=?",
+                          phonenum);
+}
+
+static scriba_list_t *getPOCByEmail(const char *email)
+{
+    return pocSearchByStr("SELECT id,firstname,secondname,lastname FROM People WHERE email=?",
+                          email);
+}
+
+static void addPOC(const char *firstname, const char *secondname, const char *lastname,
+                   const char *mobilenum, const char *phonenum, const char *email,
+                   const char *position, scriba_id_t company_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "INSERT INTO People(firstname, secondname, lastname, mobilenum, phonenum,"
+                   "email,position,company_id) VALUES(?,?,?,?,?,?,?,?)";
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, firstname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 2, secondname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 3, lastname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 4, mobilenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 5, phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 6, email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 7, position, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 8, (sqlite3_int64)company_id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void updatePOC(const struct ScribaPoc *poc)
+{
+    char query[] = "UPDATE People SET firstname=?,secondname=?,lastname=?,mobilenum=?,"
+                   "phonenum=?,email=?,position=?,company_id=? WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if ((data == NULL) || (poc == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, poc->firstname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 2, poc->secondname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 3, poc->lastname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 4, poc->mobilenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 5, poc->phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 6, poc->email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 7, poc->position, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 8, (sqlite3_int64)(poc->company_id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 9, (sqlite3_int64)(poc->id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void removePOC(scriba_id_t id)
+{
+    char query[] = "DELETE FROM People WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+// create project data structure based on given parameters
+static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, const char *descr,
+                                             scriba_id_t company_id, enum ScribaProjectState state)
+{
+    int len = 0;
+    struct ScribaProject *project = (struct ScribaProject*)malloc(sizeof (struct ScribaProject));
+    if (project == NULL)
+    {
+        return NULL;
+    }
+    memset(project, 0, sizeof (struct ScribaProject));
+
+    project->id = id;
+    if (title != NULL)
+    {
+        len = strlen(title);
+        project->title = (char *)malloc(len + 1);
+        strcpy(project->title, title);
+    }
+    if (descr != NULL)
+    {
+        len = strlen(descr);
+        project->descr = (char *)malloc(len + 1);
+        strcpy(project->descr, descr);
+    }
+    project->company_id = company_id;
+    project->state = state;
+
+    return project;
+}
+
+// common project search routine
+static scriba_list_t *projectSearch(sqlite3_stmt *stmt)
+{
+    scriba_list_t *projects = scriba_list_init();
+
+    // execute query and retrieve results
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            // id and title fields are always selected from the table
+            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            const char *title = sqlite3_column_text(stmt, 1);
+            int len = strlen(title);
+            if (len > 0)
+            {
+                char *project_title = (char *)malloc(len + 1);
+                strcpy(project_title, title);
+                scriba_list_add(projects, id, project_title);
+                free(project_title);
+            }
+            else
+            {
+                scriba_list_add(projects, id, NULL);
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return projects;
+}
+
+// project handling interface functions
+static struct ScribaProject *getProject(scriba_id_t id)
+{
+    char query[] = "SELECT * FROM Projects WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            break;
+        }
+        else
+        {
+            goto error;
+        }
+    }
+
+    // fetch results
+    if (sqlite3_column_count(stmt) != PROJECT_TABLE_COLUMNS)
+    {
+        goto error;
+    }
+    scriba_id_t project_id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+    const char *title = (const char*)sqlite3_column_text(stmt, 1);
+    const char *descr = (const char*)sqlite3_column_text(stmt, 2);
+    scriba_id_t company_id = (scriba_id_t)sqlite3_column_int64(stmt, 3);
+    enum ScribaProjectState state = (enum ScribaProjectState)sqlite3_column_int(stmt, 4);
+
+    struct ScribaProject *project = fillProjectData(project_id, title, descr, company_id, state);
+    sqlite3_finalize(stmt);
+    return project;
+
+error:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return NULL;
+}
+
+static scriba_list_t *getAllProjects()
+{
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "SELECT id,title FROM Projects";
+
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    return projectSearch(stmt);
+
+error:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    // we have to return an empty list, can't return NULL
+    return (scriba_list_init());
+}
+
+static scriba_list_t *getProjectsByCompany(scriba_id_t id)
+{
+    char query[] = "SELECT id,title FROM Projects WHERE company_id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    return projectSearch(stmt);
+ 
+error:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    // we have to return an empty list, can't return NULL
+    return (scriba_list_init());
+}
+
+static scriba_list_t *getProjectsByState(enum ScribaProjectState state)
+{
+    char query[] = "SELECT id,title FROM Projects WHERE state=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_bind_int(stmt, 1, (int)state) != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    return projectSearch(stmt);
+
+error:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    // we have to return an empty list, can't return NULL
+    return (scriba_list_init());
+}
+
+static void addProject(const char *title, const char *descr, scriba_id_t company_id,
+                       enum ScribaProjectState state)
+{
+    char query[] = "INSERT INTO Projects(title,descr,company_id,state) "
+                   "VALUES(?,?,?,?)";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, title, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 2, descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)company_id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int(stmt, 4, (int)state) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void updateProject(const struct ScribaProject *project)
+{
+    char query[] = "UPDATE Projects SET title=?,descr=?,company_id=?,state=? WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if ((data == NULL) || (project == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 1, project->title, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 2, project->descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)(project->company_id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int(stmt, 4, (int)(project->state)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 5, (sqlite3_int64)(project->id)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
+
+static void removeProject(scriba_id_t id)
+{
+    char query[] = "DELETE FROM Projects WHERE id=?";
+    sqlite3_stmt *stmt = NULL;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+}
