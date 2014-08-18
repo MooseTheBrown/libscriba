@@ -1,0 +1,104 @@
+//
+// Copyright (C) 2014 Mikhail Sapozhnikov
+//
+// This file is part of libscriba.
+//
+// libscriba is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// libscriba is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with libscriba. If not, see <http://www.gnu.org/licenses/>.
+//
+
+// FlatBuffer IDL file
+
+namespace scriba;
+
+enum EventType: byte
+{
+    MEETING = 0,
+    CALL = 1,
+    TASK = 2
+}
+
+enum EventState: byte
+{
+    SCHEDULED = 0,
+    COMPLETED = 1,
+    CANCELED = 2
+}
+
+enum ProjectState:byte
+{
+    INITIAL = 0,
+    CLIENT_INFORMED = 1,
+    CLIENT_RESPONSE = 2,
+    OFFER = 3,
+    REJECTED = 4,
+    CONTRACT_SIGNED = 5,
+    EXECUTION = 6,
+    PAYMENT = 7
+}
+
+table Company
+{
+    id:long;
+    name:string;
+    jur_name:string;
+    address:string;
+    inn:string;
+    phonenum:string;
+    email:string;
+}
+
+table Event
+{
+    id:long;
+    descr:string;
+    company_id:long;
+    project_id:long;
+    poc_id:long;
+    type:EventType;
+    outcome:string;
+    timestamp:long;
+    state:EventState;
+}
+
+table POC
+{
+    id:long;
+    firstname:string;
+    secondname:string;
+    lastname:string;
+    mobilenum:string;
+    phonenum:string;
+    email:string;
+    position:string;
+    company_id:long;
+}
+
+table Project
+{
+    id:long;
+    title:string;
+    descr:string;
+    company_id:long;
+    state:ProjectState;
+}
+
+table Entries
+{
+    companies:[Company];
+    events:[Event];
+    people:[POC];
+    projects:[Project];
+}
+
+root_type Entries;
