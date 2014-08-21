@@ -24,6 +24,7 @@ project (libscriba)
 
 set (CMAKE_BUILD_TYPE RelWithDebInfo)
 set (CMAKE_C_FLAGS_RELWITHDEBINFO "-std=c99 -ggdb")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-std=c++11 -ggdb")
 
 option (BUILD_UNIT_TESTS "generate targets to build unit tests" ON)
 option (BUILD_JAVA_BINDINGS "generate targets to build Java bindings" ON)
@@ -36,7 +37,8 @@ set (LIBSCRIBA_SRC ${libscriba_SOURCE_DIR}/scriba.c
                    ${libscriba_SOURCE_DIR}/company.c
                    ${libscriba_SOURCE_DIR}/event.c
                    ${libscriba_SOURCE_DIR}/poc.c
-                   ${libscriba_SOURCE_DIR}/project.c)
+                   ${libscriba_SOURCE_DIR}/project.c
+                   ${libscriba_SOURCE_DIR}/serializer.cpp)
 
 # sqlite backend sources
 list(APPEND LIBSCRIBA_SRC ${libscriba_SOURCE_DIR}/sqlite-backend/sqlite3.c

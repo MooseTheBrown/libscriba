@@ -21,6 +21,8 @@
 #ifndef SERIALIZER_H
 #define SERIALIZER_H
 
+#include "types.h"
+
 // different merge strageties used when importing entries from a binary buffer
 enum ScribaMergeStrategy
 {
