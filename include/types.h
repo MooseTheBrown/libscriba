@@ -23,10 +23,33 @@
 
 #define INN_DIGITS 10   // number of digits in INN
 
-typedef long long scriba_id_t;
+// unique record id
+typedef struct
+{
+    unsigned long long _high;
+    unsigned long long _low;
+} scriba_id_t;
+
+// create new scriba id
+void scriba_id_create(scriba_id_t *id);
+
+// compare two ids; returns 1 if ids match, 0 otherwise
+int scriba_id_compare(const scriba_id_t *id1, const scriba_id_t *id2);
+
+// convert scriba id to NULL-terminated string
+char *scriba_id_to_string(const scriba_id_t *id);
 
 // get scriba ID value from string representation
-scriba_id_t scriba_id_from_string(const char *str);
+void scriba_id_from_string(const char *str, scriba_id_t *id);
+
+// convert scriba id to 16-byte binary blob
+void *scriba_id_to_blob(const scriba_id_t *id);
+
+// restore scriba id from 16-byte binary blob
+void scriba_id_from_blob(const void *blob, scriba_id_t *id);
+
+// copy scriba id
+void scriba_id_copy(const scriba_id_t *src, scriba_id_t *dest);
 
 // tax payer ID (INN) type
 typedef struct
