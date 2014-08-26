@@ -33,6 +33,9 @@ typedef struct
 // create new scriba id
 void scriba_id_create(scriba_id_t *id);
 
+// zero-initialize scriba id
+void scriba_id_zero_init(scriba_id_t *id);
+
 // compare two ids; returns 1 if ids match, 0 otherwise
 int scriba_id_compare(const scriba_id_t *id1, const scriba_id_t *id2);
 

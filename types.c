@@ -71,14 +71,33 @@ void scriba_id_create(scriba_id_t *id)
     scriba_id_from_string(id_str, id);
 }
 
+// zero-initialize scriba id
+void scriba_id_zero_init(scriba_id_t *id)
+{
+    memset((void *)id, 0, sizeof (scriba_id_t));
+}
+
 // compare two ids; returns 1 if ids match, 0 otherwise
 int scriba_id_compare(const scriba_id_t *id1, const scriba_id_t *id2)
 {
+    if ((id1->_high == id2->_high) && (id1->_low == id2->_low))
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 // convert scriba id to NULL-terminated string
 char *scriba_id_to_string(const scriba_id_t *id)
 {
+    char *str = (char *)malloc(33); // 32 symbols for 128-bit UUID
+    memset((void *)str, 0, 33);
+    snprintf(str, 33, "%llx%llx",  id->_high, id->_low);
+
+    return str;
 }
 
 // get scriba ID value from string representation
@@ -115,6 +134,8 @@ void scriba_id_from_blob(const void *blob, scriba_id_t *id)
 // copy scriba id
 void scriba_id_copy(const scriba_id_t *src, scriba_id_t *dest)
 {
+    dest->_high = src->_high;
+    dest->_low = src->_low;
 }
 
 /* INN type handling routines */

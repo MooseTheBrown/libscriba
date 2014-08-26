@@ -23,7 +23,7 @@ cmake_minimum_required (VERSION 2.6)
 project (libscriba)
 
 set (CMAKE_BUILD_TYPE RelWithDebInfo)
-set (CMAKE_C_FLAGS_RELWITHDEBINFO "-std=c99 -ggdb")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "-std=c11 -ggdb")
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-std=c++11 -ggdb")
 
 option (BUILD_UNIT_TESTS "generate targets to build unit tests" ON)
