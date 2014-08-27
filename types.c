@@ -31,13 +31,13 @@
 
 
 
-static void id_remove_extra_symbols(const char *in, char *out);
+static void scriba_id_remove_extra_symbols(const char *in, char *out);
 
 
 
 /* scriba id type handling routines */
 
-static void id_remove_extra_symbols(const char *in, char *out)
+static void scriba_id_remove_extra_symbols(const char *in, char *out)
 {
     while (*in)
     {
@@ -112,7 +112,7 @@ void scriba_id_from_string(const char *str, scriba_id_t *id)
 
     memset(id_str, 0, 33);
 
-    id_remove_extra_symbols(str, id_str);
+    scriba_id_remove_extra_symbols(str, id_str);
 
     char tmp = id_str[16];
     id_str[16] = '\0';
@@ -124,11 +124,37 @@ void scriba_id_from_string(const char *str, scriba_id_t *id)
 // convert scriba id to 16-byte binary blob
 void *scriba_id_to_blob(const scriba_id_t *id)
 {
+    unsigned char *blob = (unsigned char *)malloc(16);
+
+    // low part
+    for (int i = 0; i < 8; i++)
+    {
+        blob[i] = ((id->_low) >> (8 * i)) & 0xFF;
+    }
+    // high part
+    for (int i = 8; i < 16; i++)
+    {
+        blob[i] = ((id->_high) >> (8 * (i - 8))) & 0xFF;
+    }
+
+    return blob;
 }
 
 // restore scriba id from 16-byte binary blob
 void scriba_id_from_blob(const void *blob, scriba_id_t *id)
 {
+    const unsigned char *ptr = (const unsigned char *)blob;
+
+    // low part
+    for (int i = 0; i < 8; i++)
+    {
+        id->_low |= (ptr[i] << (8 * i));
+    }
+    // high part
+    for (int i = 8; i < 16; i++)
+    {
+        id->_high |= (ptr[i] << (8 * (i - 8)));
+    }
 }
 
 // copy scriba id
