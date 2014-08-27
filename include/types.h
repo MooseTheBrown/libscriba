@@ -21,7 +21,8 @@
 #ifndef SCRIBA_TYPES_H
 #define SCRIBA_TYPES_H
 
-#define INN_DIGITS 10   // number of digits in INN
+#define INN_DIGITS              10      // number of digits in INN
+#define SCRIBA_ID_BLOB_SIZE     16      // size of scriba id binary blob in bytes
 
 // unique record id
 typedef struct
@@ -52,7 +53,7 @@ void *scriba_id_to_blob(const scriba_id_t *id);
 void scriba_id_from_blob(const void *blob, scriba_id_t *id);
 
 // copy scriba id
-void scriba_id_copy(const scriba_id_t *src, scriba_id_t *dest);
+void scriba_id_copy(scriba_id_t *dest, const scriba_id_t *src);
 
 // tax payer ID (INN) type
 typedef struct

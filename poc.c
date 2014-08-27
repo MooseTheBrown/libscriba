@@ -104,7 +104,7 @@ struct ScribaPoc *scriba_copyPOC(const struct ScribaPoc *poc)
     struct ScribaPoc *ret = (struct ScribaPoc *)malloc(sizeof (struct ScribaPoc));
     memset(ret, 0, sizeof(struct ScribaPoc));
 
-    ret->id = poc->id;
+    scriba_id_copy(&(ret->id), &(poc->id));
     if ((len = strlen(poc->firstname)) != 0)
     {
         ret->firstname = (char *)malloc(len + 1);
@@ -147,7 +147,7 @@ struct ScribaPoc *scriba_copyPOC(const struct ScribaPoc *poc)
         memset(ret->position, 0, len + 1);
         strncpy(ret->position, poc->position, len);
     }
-    ret->company_id = poc->company_id;
+    scriba_id_copy(&(ret->company_id), &(poc->company_id));
 
     return ret;
 }

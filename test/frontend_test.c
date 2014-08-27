@@ -69,7 +69,7 @@ void test_company()
     CU_ASSERT(scriba_list_is_empty(companies->next));
     company = scriba_getCompany(companies->id);
     CU_ASSERT_PTR_NOT_NULL(company);
-    CU_ASSERT_EQUAL(company->id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(company->id), &(companies->id)));
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #1");
     CU_ASSERT_STRING_EQUAL(company->jur_name, "Test1 LLC");
     CU_ASSERT_STRING_EQUAL(company->address, "Test Address 1");
@@ -93,7 +93,7 @@ void test_company()
     CU_ASSERT(scriba_list_is_empty(companies->next->next));
     company = scriba_getCompany(companies->next->id);
     CU_ASSERT_PTR_NOT_NULL(company);
-    CU_ASSERT_EQUAL(company->id, companies->next->id);
+    CU_ASSERT(scriba_id_compare(&(company->id), &(companies->next->id)));
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #2");
     CU_ASSERT_STRING_EQUAL(company->jur_name, "Test2 LLC");
     CU_ASSERT_STRING_EQUAL(company->address, "Test Address 2");
@@ -114,7 +114,7 @@ void test_company()
     CU_ASSERT(scriba_list_is_empty(companies->next));
     company = scriba_getCompany(companies->id);
     CU_ASSERT_PTR_NOT_NULL(company);
-    CU_ASSERT_EQUAL(company->id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(company->id), &(companies->id)));
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #1");
 
     scriba_list_delete(companies);
@@ -126,7 +126,7 @@ void test_company()
     CU_ASSERT(scriba_list_is_empty(companies->next));
     company = scriba_getCompany(companies->id);
     CU_ASSERT_PTR_NOT_NULL(company);
-    CU_ASSERT_EQUAL(company->id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(company->id), &(companies->id)));
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #2");
 
     scriba_list_delete(companies);
@@ -138,7 +138,7 @@ void test_company()
     CU_ASSERT(scriba_list_is_empty(companies->next));
     company = scriba_getCompany(companies->id);
     CU_ASSERT_PTR_NOT_NULL(company);
-    CU_ASSERT_EQUAL(company->id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(company->id), &(companies->id)));
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #1");
 
     scriba_list_delete(companies);
@@ -147,7 +147,7 @@ void test_company()
     company1 = scriba_copyCompany(company);
     CU_ASSERT_PTR_NOT_NULL(company1);
     CU_ASSERT_NOT_EQUAL(company1, company);
-    CU_ASSERT_EQUAL(company1->id, company->id);
+    CU_ASSERT(scriba_id_compare(&(company1->id), &(company->id)));
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #1");
     CU_ASSERT_STRING_EQUAL(company->jur_name, "Test1 LLC");
     CU_ASSERT_STRING_EQUAL(company->address, "Test Address 1");
@@ -191,7 +191,7 @@ void test_company()
     CU_ASSERT(scriba_list_is_empty(companies->next));
     company = scriba_getCompany(companies->id);
     CU_ASSERT_PTR_NOT_NULL(company);
-    CU_ASSERT_EQUAL(company->id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(company->id), &(companies->id)));
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #2");
 
     scriba_list_delete(companies);
@@ -229,7 +229,7 @@ void test_poc()
     CU_ASSERT(scriba_list_is_empty(people->next));
     poc1 = scriba_getPOC(people->id);
     CU_ASSERT_PTR_NOT_NULL(poc1);
-    CU_ASSERT_EQUAL(poc1->id, people->id);
+    CU_ASSERT(scriba_id_compare(&(poc1->id), &(people->id)));
     CU_ASSERT_STRING_EQUAL(poc1->firstname, "Mikhail");
     CU_ASSERT_STRING_EQUAL(poc1->secondname, "Alekseevich");
     CU_ASSERT_STRING_EQUAL(poc1->lastname, "Sapozhnikov");
@@ -237,7 +237,7 @@ void test_poc()
     CU_ASSERT_STRING_EQUAL(poc1->phonenum, "2222");
     CU_ASSERT_STRING_EQUAL(poc1->email, "mikhail@test1.com");
     CU_ASSERT_STRING_EQUAL(poc1->position, "SW Engineer");
-    CU_ASSERT_EQUAL(poc1->company_id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(poc1->company_id), &(companies->id)));
 
     scriba_list_delete(people);
 
@@ -249,7 +249,7 @@ void test_poc()
     CU_ASSERT(scriba_list_is_empty(people->next));
     poc2 = scriba_getPOC(people->id);
     CU_ASSERT_PTR_NOT_NULL(poc2);
-    CU_ASSERT_EQUAL(poc2->id, people->id);
+    CU_ASSERT(scriba_id_compare(&(poc2->id), &(people->id)));
     CU_ASSERT_STRING_EQUAL(poc2->firstname, "Alexey");
     CU_ASSERT_STRING_EQUAL(poc2->secondname, "Vladimirovich");
     CU_ASSERT_STRING_EQUAL(poc2->lastname, "Sapozhnikov");
@@ -257,7 +257,7 @@ void test_poc()
     CU_ASSERT_STRING_EQUAL(poc2->phonenum, "4444");
     CU_ASSERT_STRING_EQUAL(poc2->email, "alexey@test2.com");
     CU_ASSERT_STRING_EQUAL(poc2->position, "Maritime Inspector");
-    CU_ASSERT_EQUAL(poc2->company_id, companies->next->id);
+    CU_ASSERT(scriba_id_compare(&(poc2->company_id), &(companies->next->id)));
 
     scriba_list_delete(people);
 
@@ -269,7 +269,7 @@ void test_poc()
     CU_ASSERT(scriba_list_is_empty(people->next));
     poc3 = scriba_getPOC(people->id);
     CU_ASSERT_PTR_NOT_NULL(poc3);
-    CU_ASSERT_EQUAL(poc3->id, people->id);
+    CU_ASSERT(scriba_id_compare(&(poc3->id), &(people->id)));
     CU_ASSERT_STRING_EQUAL(poc3->firstname, "Elena");
     CU_ASSERT_STRING_EQUAL(poc3->secondname, "Yurievna");
     CU_ASSERT_STRING_EQUAL(poc3->lastname, "Sapozhnikova");
@@ -277,15 +277,15 @@ void test_poc()
     CU_ASSERT_STRING_EQUAL(poc3->phonenum, "6666");
     CU_ASSERT_STRING_EQUAL(poc3->email, "elena@test2.com");
     CU_ASSERT_STRING_EQUAL(poc3->position, "Accountant");
-    CU_ASSERT_EQUAL(poc3->company_id, companies->next->id);
+    CU_ASSERT(scriba_id_compare(&(poc3->company_id), &(companies->next->id)));
 
     scriba_list_delete(people);
 
     people = scriba_getPOCByName(NULL, NULL, "Sapozhnikov");
     CU_ASSERT_FALSE(scriba_list_is_empty(people));
     CU_ASSERT_FALSE(scriba_list_is_empty(people->next));
-    CU_ASSERT_EQUAL(people->id, poc1->id);
-    CU_ASSERT_EQUAL(people->next->id, poc2->id);
+    CU_ASSERT(scriba_id_compare(&(people->id), &(poc1->id)));
+    CU_ASSERT(scriba_id_compare(&(people->next->id), &(poc2->id)));
 
     scriba_list_delete(people);
 
@@ -304,22 +304,22 @@ void test_poc()
     people = scriba_getPOCByCompany(companies->next->id);
     CU_ASSERT_FALSE(scriba_list_is_empty(people));
     CU_ASSERT_FALSE(scriba_list_is_empty(people->next));
-    CU_ASSERT_EQUAL(people->id, poc2->id);
-    CU_ASSERT_EQUAL(people->next->id, poc3->id);
+    CU_ASSERT(scriba_id_compare(&(people->id), &(poc2->id)));
+    CU_ASSERT(scriba_id_compare(&(people->next->id), &(poc3->id)));
 
     scriba_list_delete(people);
 
     people = scriba_getPOCByPosition("SW Engineer");
     CU_ASSERT_FALSE(scriba_list_is_empty(people));
     CU_ASSERT(scriba_list_is_empty(people->next));
-    CU_ASSERT_EQUAL(people->id, poc1->id);
+    CU_ASSERT(scriba_id_compare(&(people->id), &(poc1->id)));
 
     scriba_list_delete(people);
 
     people = scriba_getPOCByEmail("elena@test2.com");
     CU_ASSERT_FALSE(scriba_list_is_empty(people));
     CU_ASSERT(scriba_list_is_empty(people->next));
-    CU_ASSERT_EQUAL(people->id, poc3->id);
+    CU_ASSERT(scriba_id_compare(&(people->id), &(poc3->id)));
 
     scriba_list_delete(people);
 
@@ -351,7 +351,7 @@ void test_poc()
     CU_ASSERT_STRING_EQUAL(poc4->phonenum, "6666");
     CU_ASSERT_STRING_EQUAL(poc4->email, "ksenia@test2.com");
     CU_ASSERT_STRING_EQUAL(poc4->position, "Logistics specialist");
-    CU_ASSERT_EQUAL(poc4->company_id, companies->next->id);
+    CU_ASSERT(scriba_id_compare(&(poc4->company_id), &(companies->next->id)));
 
     scriba_freePOCData(poc3);
     poc3 = NULL;
@@ -360,7 +360,7 @@ void test_poc()
     poc3 = scriba_copyPOC(poc4);
     CU_ASSERT_PTR_NOT_NULL(poc3);
     CU_ASSERT_NOT_EQUAL(poc3, poc4);
-    CU_ASSERT_EQUAL(poc3->id, poc4->id);
+    CU_ASSERT(scriba_id_compare(&(poc3->id), &(poc4->id)));
     CU_ASSERT_STRING_EQUAL(poc3->firstname, "Ksenia");
     CU_ASSERT_STRING_EQUAL(poc3->secondname, "Nikolayevna");
     CU_ASSERT_STRING_EQUAL(poc3->lastname, "Sapozhnikova");
@@ -368,20 +368,20 @@ void test_poc()
     CU_ASSERT_STRING_EQUAL(poc3->phonenum, "6666");
     CU_ASSERT_STRING_EQUAL(poc3->email, "ksenia@test2.com");
     CU_ASSERT_STRING_EQUAL(poc3->position, "Logistics specialist");
-    CU_ASSERT_EQUAL(poc3->company_id, companies->next->id);
+    CU_ASSERT(scriba_id_compare(&(poc3->company_id), &(companies->next->id)));
     
     // check companies' POC lists
     company = scriba_getCompany(companies->id);
     CU_ASSERT_FALSE(scriba_list_is_empty(company->poc_list));
     CU_ASSERT(scriba_list_is_empty(company->poc_list->next));
-    CU_ASSERT_EQUAL(company->poc_list->id, poc1->id);
+    CU_ASSERT(scriba_id_compare(&(company->poc_list->id), &(poc1->id)));
     scriba_freeCompanyData(company);
 
     company = scriba_getCompany(companies->next->id);
     CU_ASSERT_FALSE(scriba_list_is_empty(company->poc_list));
     CU_ASSERT_FALSE(scriba_list_is_empty(company->poc_list->next));
-    CU_ASSERT_EQUAL(company->poc_list->id, poc2->id);
-    CU_ASSERT_EQUAL(company->poc_list->next->id, poc4->id);
+    CU_ASSERT(scriba_id_compare(&(company->poc_list->id), &(poc2->id)));
+    CU_ASSERT(scriba_id_compare(&(company->poc_list->next->id), &(poc4->id)));
     scriba_freeCompanyData(company);
 
     // remove one poc and verify that it is indeed removed
@@ -425,10 +425,10 @@ void test_project()
 
     project1 = scriba_getProject(projects->id);
     CU_ASSERT_PTR_NOT_NULL(project1);
-    CU_ASSERT_EQUAL(project1->id, projects->id);
+    CU_ASSERT(scriba_id_compare(&(project1->id), &(projects->id)));
     CU_ASSERT_STRING_EQUAL(project1->title, "Test Project #1");
     CU_ASSERT_STRING_EQUAL(project1->descr, "100 bottles of whisky");
-    CU_ASSERT_EQUAL(project1->company_id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(project1->company_id), &(companies->id)));
     CU_ASSERT_EQUAL(project1->state, PROJECT_STATE_CONTRACT_SIGNED);
 
     scriba_list_delete(projects);
@@ -444,15 +444,15 @@ void test_project()
     project2 = scriba_getProject(projects->next->id);
     CU_ASSERT_PTR_NOT_NULL(project2);
 
-    CU_ASSERT_PTR_EQUAL(projects->id, project1->id);
-    CU_ASSERT_PTR_EQUAL(projects->next->id, project2->id);
+    CU_ASSERT(scriba_id_compare(&(projects->id), &(project1->id)));
+    CU_ASSERT(scriba_id_compare(&(projects->next->id), &(project2->id)));
 
     scriba_list_delete(projects);
 
     projects = scriba_getProjectsByState(PROJECT_STATE_REJECTED);
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));
     CU_ASSERT(scriba_list_is_empty(projects->next));
-    CU_ASSERT_EQUAL(projects->id, project2->id);
+    CU_ASSERT(scriba_id_compare(&(projects->id), &(project2->id)));
     
     scriba_list_delete(projects);
 
@@ -463,10 +463,10 @@ void test_project()
     scriba_freeProjectData(project2);
     project2 = scriba_getProject(projects->next->id);
     CU_ASSERT_PTR_NOT_NULL(project2);
-    CU_ASSERT_PTR_EQUAL(project2->id, projects->next->id);
+    CU_ASSERT(scriba_id_compare(&(project2->id), &(projects->next->id)));
     CU_ASSERT_STRING_EQUAL(project2->title, "Test Project #2");
     CU_ASSERT_STRING_EQUAL(project2->descr, "1000 bottles of milk");
-    CU_ASSERT_EQUAL(project2->company_id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(project2->company_id), &(companies->id)));
     CU_ASSERT_EQUAL(project2->state, PROJECT_STATE_OFFER);
 
     scriba_list_delete(projects);
@@ -475,10 +475,10 @@ void test_project()
     project3 = scriba_copyProject(project1);
     CU_ASSERT_PTR_NOT_NULL(project3);
     CU_ASSERT_NOT_EQUAL(project3, project1);
-    CU_ASSERT_EQUAL(project3->id, project1->id);
+    CU_ASSERT(scriba_id_compare(&(project3->id), &(project1->id)));
     CU_ASSERT_STRING_EQUAL(project1->title, "Test Project #1");
     CU_ASSERT_STRING_EQUAL(project1->descr, "100 bottles of whisky");
-    CU_ASSERT_EQUAL(project1->company_id, companies->id);
+    CU_ASSERT(scriba_id_compare(&(project1->company_id), &(companies->id)));
     CU_ASSERT_EQUAL(project1->state, PROJECT_STATE_CONTRACT_SIGNED);
     scriba_freeProjectData(project3);
     project3 = NULL;
@@ -487,8 +487,8 @@ void test_project()
     company = scriba_getCompany(companies->id);
     CU_ASSERT_FALSE(scriba_list_is_empty(company->proj_list));
     CU_ASSERT_FALSE(scriba_list_is_empty(company->proj_list->next));
-    CU_ASSERT_EQUAL(company->proj_list->id, project1->id);
-    CU_ASSERT_EQUAL(company->proj_list->next->id, project2->id);
+    CU_ASSERT(scriba_id_compare(&(company->proj_list->id), &(project1->id)));
+    CU_ASSERT(scriba_id_compare(&(company->proj_list->next->id), &(project2->id)));
     scriba_freeCompanyData(company);
 
     // remove the first project and verify
@@ -566,11 +566,11 @@ void test_event()
     CU_ASSERT(scriba_list_is_empty(events->next));
     event1 = scriba_getEvent(events->id);
     CU_ASSERT_PTR_NOT_NULL(event1);
-    CU_ASSERT_EQUAL(event1->id, events->id);
+    CU_ASSERT(scriba_id_compare(&(event1->id), &(events->id)));
     CU_ASSERT_STRING_EQUAL(event1->descr, "Test event #1");
-    CU_ASSERT_EQUAL(event1->company_id, companies->id);
-    CU_ASSERT_EQUAL(event1->poc_id, people1->id);
-    CU_ASSERT_EQUAL(event1->project_id, projects->id);
+    CU_ASSERT(scriba_id_compare(&(event1->company_id), &(companies->id)));
+    CU_ASSERT(scriba_id_compare(&(event1->poc_id), &(people1->id)));
+    CU_ASSERT(scriba_id_compare(&(event1->project_id), &(projects->id)));
     CU_ASSERT_EQUAL(event1->type, EVENT_TYPE_MEETING);
     CU_ASSERT_STRING_EQUAL(event1->outcome, "Cancelled");
     CU_ASSERT_EQUAL(event1->timestamp, cur_time);
@@ -583,11 +583,11 @@ void test_event()
     CU_ASSERT(scriba_list_is_empty(events->next));
     event2 = scriba_getEvent(events->id);
     CU_ASSERT_PTR_NOT_NULL(event2);
-    CU_ASSERT_EQUAL(event2->id, events->id);
+    CU_ASSERT(scriba_id_compare(&(event2->id), &(events->id)));
     CU_ASSERT_STRING_EQUAL(event2->descr, "Test event #2");
-    CU_ASSERT_EQUAL(event2->company_id, companies->next->id);
-    CU_ASSERT_EQUAL(event2->poc_id, people2->id);
-    CU_ASSERT_EQUAL(event2->project_id, projects->next->id);
+    CU_ASSERT(scriba_id_compare(&(event2->company_id), &(companies->next->id)));
+    CU_ASSERT(scriba_id_compare(&(event2->poc_id), &(people2->id)));
+    CU_ASSERT(scriba_id_compare(&(event2->project_id), &(projects->next->id)));
     CU_ASSERT_EQUAL(event2->type, EVENT_TYPE_CALL);
     CU_ASSERT_STRING_EQUAL(event2->outcome, "Missed");
     CU_ASSERT_EQUAL(event2->timestamp, cur_time + 100);
@@ -602,11 +602,11 @@ void test_event()
     CU_ASSERT(scriba_list_is_empty(events->next));
     event2 = scriba_getEvent(events->id);
     CU_ASSERT_PTR_NOT_NULL(event2);
-    CU_ASSERT_EQUAL(event2->id, events->id);
+    CU_ASSERT(scriba_id_compare(&(event2->id), &(events->id)));
     CU_ASSERT_STRING_EQUAL(event2->descr, "Test event #2");
-    CU_ASSERT_EQUAL(event2->company_id, companies->next->id);
-    CU_ASSERT_EQUAL(event2->poc_id, people2->id);
-    CU_ASSERT_EQUAL(event2->project_id, projects->next->id);
+    CU_ASSERT(scriba_id_compare(&(event2->company_id), &(companies->next->id)));
+    CU_ASSERT(scriba_id_compare(&(event2->poc_id), &(people2->id)));
+    CU_ASSERT(scriba_id_compare(&(event2->project_id), &(projects->next->id)));
     CU_ASSERT_EQUAL(event2->type, EVENT_TYPE_CALL);
     CU_ASSERT_STRING_EQUAL(event2->outcome, "Missed");
     CU_ASSERT_EQUAL(event2->timestamp, cur_time + 100);
@@ -618,11 +618,11 @@ void test_event()
     scriba_updateEvent(event2);
     event3 = scriba_getEvent(events->id);
     CU_ASSERT_PTR_NOT_NULL(event3);
-    CU_ASSERT_EQUAL(event3->id, events->id);
+    CU_ASSERT(scriba_id_compare(&(event3->id), &(events->id)));
     CU_ASSERT_STRING_EQUAL(event3->descr, "Test event #2");
-    CU_ASSERT_EQUAL(event3->company_id, companies->next->id);
-    CU_ASSERT_EQUAL(event3->poc_id, people2->id);
-    CU_ASSERT_EQUAL(event3->project_id, projects->next->id);
+    CU_ASSERT(scriba_id_compare(&(event3->company_id), &(companies->next->id)));
+    CU_ASSERT(scriba_id_compare(&(event3->poc_id), &(people2->id)));
+    CU_ASSERT(scriba_id_compare(&(event3->project_id), &(projects->next->id)));
     CU_ASSERT_EQUAL(event3->type, EVENT_TYPE_TASK);
     CU_ASSERT_STRING_EQUAL(event3->outcome, "Missed");
     CU_ASSERT_EQUAL(event3->timestamp, cur_time + 100);
@@ -632,11 +632,11 @@ void test_event()
     event4 = scriba_copyEvent(event3);
     CU_ASSERT_PTR_NOT_NULL(event4);
     CU_ASSERT_NOT_EQUAL(event4, event3);
-    CU_ASSERT_EQUAL(event4->id, event3->id);
+    CU_ASSERT(scriba_id_compare(&(event4->id), &(event3->id)));
     CU_ASSERT_STRING_EQUAL(event4->descr, "Test event #2");
-    CU_ASSERT_EQUAL(event4->company_id, companies->next->id);
-    CU_ASSERT_EQUAL(event4->poc_id, people2->id);
-    CU_ASSERT_EQUAL(event4->project_id, projects->next->id);
+    CU_ASSERT(scriba_id_compare(&(event4->company_id), &(companies->next->id)));
+    CU_ASSERT(scriba_id_compare(&(event4->poc_id), &(people2->id)));
+    CU_ASSERT(scriba_id_compare(&(event4->project_id), &(projects->next->id)));
     CU_ASSERT_EQUAL(event4->type, EVENT_TYPE_TASK);
     CU_ASSERT_STRING_EQUAL(event4->outcome, "Missed");
     CU_ASSERT_EQUAL(event4->timestamp, cur_time + 100);
@@ -656,7 +656,7 @@ void test_event()
     company = scriba_getCompany(companies->next->id);
     CU_ASSERT_FALSE(scriba_list_is_empty(company->event_list));
     CU_ASSERT(scriba_list_is_empty(company->event_list->next));
-    CU_ASSERT_EQUAL(company->event_list->id, event2->id);
+    CU_ASSERT(scriba_id_compare(&(company->event_list->id), &(event2->id)));
 
     scriba_list_delete(people1);
     scriba_list_delete(people2);

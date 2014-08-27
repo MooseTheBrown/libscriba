@@ -81,7 +81,7 @@ struct ScribaProject *scriba_copyProject(const struct ScribaProject *project)
     struct ScribaProject *ret = (struct ScribaProject *)malloc(sizeof (struct ScribaProject));
     memset(ret, 0, sizeof (struct ScribaProject));
 
-    ret->id = project->id;
+    scriba_id_copy(&(ret->id), &(project->id));
     if((len = strlen(project->title)) != 0)
     {
         ret->title = (char *)malloc(len + 1);
@@ -94,7 +94,7 @@ struct ScribaProject *scriba_copyProject(const struct ScribaProject *project)
         memset(ret->descr, 0, len + 1);
         strncpy(ret->descr, project->descr, len);
     }
-    ret->company_id = project->company_id;
+    scriba_id_copy(&(ret->company_id), &(project->company_id));
     ret->state = project->state;
 
     return ret;

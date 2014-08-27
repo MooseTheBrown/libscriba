@@ -114,7 +114,6 @@ static void mock_backend_cleanup()
         free(mockData.companies);
     }
     mockData.num_companies = 0;
-    mockData.next_company_id = 0;
 
     for (i = 0; i < mockData.num_events; i++)
     {
@@ -130,7 +129,6 @@ static void mock_backend_cleanup()
         free(mockData.events);
     }
     mockData.num_events = 0;
-    mockData.next_event_id = 0;
 
     for (i = 0; i < mockData.num_people; i++)
     {
@@ -146,7 +144,6 @@ static void mock_backend_cleanup()
         free(mockData.people);
     }
     mockData.num_people = 0;
-    mockData.next_poc_id = 0;
 
     for (i = 0; i < mockData.num_projects; i++)
     {
@@ -162,7 +159,6 @@ static void mock_backend_cleanup()
         free(mockData.projects);
     }
     mockData.num_projects = 0;
-    mockData.next_project_id = 0;
 }
 
 static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncTbl *fTbl)
@@ -204,16 +200,12 @@ static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncT
     // init mock data
     mockData.companies = NULL;
     mockData.num_companies = 0;
-    mockData.next_company_id = 0;
     mockData.events = NULL;
     mockData.num_events = 0;
-    mockData.next_event_id = 0;
     mockData.people = NULL;
     mockData.num_people = 0;
-    mockData.next_poc_id = 0;
     mockData.projects = NULL;
     mockData.num_projects = 0;
-    mockData.next_project_id = 0;
 
     return 0;
 }
@@ -227,7 +219,7 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
     {
         if (mockData.companies[i] != NULL)
         {
-            if (mockData.companies[i]->id == id)
+            if (scriba_id_compare(&(mockData.companies[i]->id), &id))
             {
                 ret = scriba_copyCompany(mockData.companies[i]);
                 break;
@@ -241,7 +233,8 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
         ret->poc_list = scriba_list_init();
         for (i = 0; i < mockData.num_people; i++)
         {
-            if ((mockData.people[i] != NULL) && (mockData.people[i]->company_id == id))
+            if ((mockData.people[i] != NULL) &&
+                scriba_id_compare(&(mockData.people[i]->company_id), &id))
             {
                 scriba_list_add(ret->poc_list, mockData.people[i]->id, NULL);
             }
@@ -251,7 +244,8 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
         ret->proj_list = scriba_list_init();
         for (i = 0; i < mockData.num_projects; i++)
         {
-            if ((mockData.projects[i] != NULL) && (mockData.projects[i]->company_id == id))
+            if ((mockData.projects[i] != NULL) &&
+                scriba_id_compare(&(mockData.projects[i]->company_id), &id))
             {
                 scriba_list_add(ret->proj_list, mockData.projects[i]->id, NULL);
             }
@@ -261,7 +255,8 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
         ret->event_list = scriba_list_init();
         for (i = 0; i < mockData.num_events; i++)
         {
-            if ((mockData.events[i] != NULL) && (mockData.events[i]->company_id == id))
+            if ((mockData.events[i] != NULL) &&
+                scriba_id_compare(&(mockData.events[i]->company_id), &id))
             {
                 scriba_list_add(ret->event_list, mockData.events[i]->id, NULL);
             }
@@ -352,7 +347,7 @@ static void addCompany(const char *name, const char *jur_name, const char *addre
 
     memset((void *)new_company, 0, sizeof (struct ScribaCompany));
 
-    new_company->id = mockData.next_company_id++;
+    scriba_id_create(&(new_company->id));
     if ((len = strlen(name)) > 0)
     {
         new_company->name = (char *)malloc(len + 1);
@@ -407,7 +402,7 @@ static void updateCompany(const struct ScribaCompany *company)
     {
         if (mockData.companies[i] != NULL)
         {
-            if (mockData.companies[i]->id == company->id)
+            if (scriba_id_compare(&(mockData.companies[i]->id), &(company->id)))
             {
                 struct ScribaCompany *updated = scriba_copyCompany(company);
                 free_company_data(mockData.companies[i]);
@@ -427,7 +422,7 @@ static void removeCompany(scriba_id_t id)
     {
         if (mockData.companies[i] != NULL)
         {
-            if (mockData.companies[i]->id == id)
+            if (scriba_id_compare(&(mockData.companies[i]->id), &id))
             {
                 // just free company data and set company pointer to NULL;
                 // pointer itself is not removed from the array for the sake of simplicity
@@ -476,7 +471,8 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
 
     for (i = 0; i < mockData.num_events; i++)
     {
-        if ((mockData.events[i] != NULL) && (mockData.events[i]->id == id))
+        if ((mockData.events[i] != NULL) &&
+            scriba_id_compare(&(mockData.events[i]->id), &id))
         {
             ret = scriba_copyEvent(mockData.events[i]);
             break;
@@ -506,7 +502,8 @@ static scriba_list_t *getEventsByCompany(scriba_id_t id)
 
     for (i = 0; i < mockData.num_events; i++)
     {
-        if ((mockData.events[i] != NULL) && (mockData.events[i]->company_id == id))
+        if ((mockData.events[i] != NULL) &&
+            scriba_id_compare(&(mockData.events[i]->company_id), &id))
         {
             scriba_list_add(list, mockData.events[i]->id, mockData.events[i]->descr);
         }
@@ -522,7 +519,8 @@ static scriba_list_t *getEventsByPOC(scriba_id_t id)
 
     for (i = 0; i < mockData.num_events; i++)
     {
-        if ((mockData.events[i] != NULL) && (mockData.events[i]->poc_id == id))
+        if ((mockData.events[i] != NULL) &&
+            scriba_id_compare(&(mockData.events[i]->poc_id), &id))
         {
             scriba_list_add(list, mockData.events[i]->id, mockData.events[i]->descr);
         }
@@ -538,7 +536,8 @@ static scriba_list_t *getEventsByProject(scriba_id_t id)
 
     for (i = 0; i < mockData.num_events; i++)
     {
-        if ((mockData.events[i] != NULL) && (mockData.events[i]->project_id == id))
+        if ((mockData.events[i] != NULL) &&
+            scriba_id_compare(&(mockData.events[i]->project_id), &id))
         {
             scriba_list_add(list, mockData.events[i]->id, mockData.events[i]->descr);
         }
@@ -556,16 +555,16 @@ static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_
 
     memset(new_event, 0, sizeof (struct ScribaEvent));
 
-    new_event->id = mockData.next_event_id++;
+    scriba_id_create(&(new_event->id));
     if ((len = strlen(descr)) > 0)
     {
         new_event->descr = (char *)malloc(len + 1);
         memset(new_event->descr, 0, len + 1);
         strncpy(new_event->descr, descr, len);
     }
-    new_event->company_id = company_id;
-    new_event->poc_id = poc_id;
-    new_event->project_id = project_id;
+    scriba_id_copy(&(new_event->company_id), &company_id);
+    scriba_id_copy(&(new_event->poc_id), &poc_id);
+    scriba_id_copy(&(new_event->project_id), &project_id);
     new_event->type = type;
     if ((len = strlen(outcome)) > 0)
     {
@@ -596,7 +595,8 @@ static void updateEvent(const struct ScribaEvent *event)
 
     for (i = 0; i < mockData.num_events; i++)
     {
-        if ((mockData.events[i] != NULL) && (mockData.events[i]->id == event->id))
+        if ((mockData.events[i] != NULL) &&
+            scriba_id_compare(&(mockData.events[i]->id), &(event->id)))
         {
             struct ScribaEvent *updated = scriba_copyEvent(event);
             free_event_data(mockData.events[i]);
@@ -613,7 +613,8 @@ static void removeEvent(scriba_id_t id)
 
     for (i = 0; i < mockData.num_events; i++)
     {
-        if ((mockData.events[i] != NULL) && (mockData.events[i]->id == id))
+        if ((mockData.events[i] != NULL) &&
+            scriba_id_compare(&(mockData.events[i]->id), &id))
         {
             free_event_data(mockData.events[i]);
             free(mockData.events[i]);
@@ -644,7 +645,8 @@ static struct ScribaPoc *getPOC(scriba_id_t id)
 
     for (i = 0; i < mockData.num_people; i++)
     {
-        if ((mockData.people[i] != NULL) && (mockData.people[i]->id == id))
+        if ((mockData.people[i] != NULL) &&
+            scriba_id_compare(&(mockData.people[i]->id), &id))
         {
             ret = scriba_copyPOC(mockData.people[i]);
             break;
@@ -709,7 +711,8 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id)
 
     for (i = 0; i < mockData.num_people; i++)
     {
-        if ((mockData.people[i] != NULL) && (mockData.people[i]->company_id == id))
+        if ((mockData.people[i] != NULL) &&
+            scriba_id_compare(&(mockData.people[i]->company_id), &id))
         {
             scriba_list_add(list, mockData.people[i]->id, NULL);
         }
@@ -784,7 +787,7 @@ static void addPOC(const char *firstname, const char *secondname, const char *la
 
     memset(new_poc, 0, sizeof (struct ScribaPoc));
 
-    new_poc->id = mockData.next_poc_id++;
+    scriba_id_create(&(new_poc->id));
     if ((len = strlen(firstname)) > 0)
     {
         new_poc->firstname = (char *)malloc(len + 1);
@@ -827,7 +830,7 @@ static void addPOC(const char *firstname, const char *secondname, const char *la
         memset(new_poc->position, 0, len + 1);
         strncpy(new_poc->position, position, len);
     }
-    new_poc->company_id = company_id;
+    scriba_id_copy(&(new_poc->company_id), &company_id);
 
     if (mockData.people == NULL)
     {
@@ -848,7 +851,8 @@ static void updatePOC(const struct ScribaPoc *poc)
 
     for (i = 0; i < mockData.num_people; i++)
     {
-        if ((mockData.people[i] != NULL) && (mockData.people[i]->id == poc->id))
+        if ((mockData.people[i] != NULL) &&
+            scriba_id_compare(&(mockData.people[i]->id), &(poc->id)))
         {
             struct ScribaPoc *updated = scriba_copyPOC(poc);
             free_poc_data(mockData.people[i]);
@@ -865,7 +869,8 @@ static void removePOC(scriba_id_t id)
 
     for (i = 0; i < mockData.num_people; i++)
     {
-        if ((mockData.people[i] != NULL) && (mockData.people[i]->id == id))
+        if ((mockData.people[i] != NULL) &&
+            scriba_id_compare(&(mockData.people[i]->id), &id))
         {
             free_poc_data(mockData.people[i]);
             free(mockData.people[i]);
@@ -921,7 +926,8 @@ static struct ScribaProject *getProject(scriba_id_t id)
 
     for (i = 0; i < mockData.num_projects; i++)
     {
-        if ((mockData.projects[i] != NULL) && (mockData.projects[i]->id == id))
+        if ((mockData.projects[i] != NULL) &&
+            scriba_id_compare(&(mockData.projects[i]->id), &id))
         {
             ret = scriba_copyProject(mockData.projects[i]);
             break;
@@ -954,7 +960,8 @@ static scriba_list_t *getProjectsByCompany(scriba_id_t id)
 
     for (i = 0; i < mockData.num_projects; i++)
     {
-        if ((mockData.projects[i] != NULL) && (mockData.projects[i]->company_id == id))
+        if ((mockData.projects[i] != NULL) &&
+            scriba_id_compare(&(mockData.projects[i]->company_id), &id))
         {
             scriba_list_add(list, mockData.projects[i]->id, mockData.projects[i]->title);
         }
@@ -985,7 +992,7 @@ static void addProject(const char *title, const char *descr, scriba_id_t company
     struct ScribaProject *new_project = (struct ScribaProject *)malloc(sizeof (struct ScribaProject));
     int len = 0;
 
-    new_project->id = mockData.next_project_id++;
+    scriba_id_create(&(new_project->id));
     if ((len = strlen(title)) != 0)
     {
         new_project->title = (char *)malloc(len + 1);
@@ -998,7 +1005,7 @@ static void addProject(const char *title, const char *descr, scriba_id_t company
         memset(new_project->descr, 0, len + 1);
         strncpy(new_project->descr, descr, len);
     }
-    new_project->company_id = company_id;
+    scriba_id_copy(&(new_project->company_id), &company_id);
     new_project->state = state;
 
     if (mockData.projects == NULL)
@@ -1020,7 +1027,8 @@ static void updateProject(const struct ScribaProject *project)
 
     for (i = 0; i < mockData.num_projects; i++)
     {
-        if ((mockData.projects[i] != NULL) && (mockData.projects[i]->id == project->id))
+        if ((mockData.projects[i] != NULL) &&
+            scriba_id_compare(&(mockData.projects[i]->id), &(project->id)))
         {
             struct ScribaProject *updated = scriba_copyProject(project);
             free_project_data(mockData.projects[i]);
@@ -1037,7 +1045,8 @@ static void removeProject(scriba_id_t id)
 
     for (i = 0; i < mockData.num_projects; i++)
     {
-        if ((mockData.projects[i] != NULL) && (mockData.projects[i]->id == id))
+        if ((mockData.projects[i] != NULL) &&
+            scriba_id_compare(&(mockData.projects[i]->id), &id))
         {
             free_project_data(mockData.projects[i]);
             free(mockData.projects[i]);

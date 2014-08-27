@@ -86,7 +86,7 @@ struct ScribaCompany *scriba_copyCompany(const struct ScribaCompany *company)
 
     struct ScribaCompany *ret = (struct ScribaCompany *)malloc(sizeof (struct ScribaCompany));
     memset((void *)ret, 0, sizeof (struct ScribaCompany));
-    ret->id = company->id;
+    scriba_id_copy(&(ret->id), &(company->id));
     if ((len = strlen(company->name)) != 0)
     {
         ret->name = (char *)malloc(len + 1);

@@ -88,16 +88,16 @@ struct ScribaEvent *scriba_copyEvent(const struct ScribaEvent *event)
     struct ScribaEvent *ret = (struct ScribaEvent *)malloc(sizeof (struct ScribaEvent));
     memset(ret, 0, sizeof (struct ScribaEvent));
 
-    ret->id = event->id;
+    scriba_id_copy(&(ret->id), &(event->id));
     if ((len = strlen(event->descr)) != 0)
     {
         ret->descr = (char *)malloc(len + 1);
         memset(ret->descr, 0, len + 1);
         strncpy(ret->descr, event->descr, len);
     }
-    ret->company_id = event->company_id;
-    ret->poc_id = event->poc_id;
-    ret->project_id = event->project_id;
+    scriba_id_copy(&(ret->company_id), &(event->company_id));
+    scriba_id_copy(&(ret->poc_id), &(event->poc_id));
+    scriba_id_copy(&(ret->project_id), &(event->project_id));
     ret->type = event->type;
     if ((len = strlen(event->outcome)) != 0)
     {

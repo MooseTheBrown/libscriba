@@ -29,7 +29,7 @@
 // database tables structure
 #define CREATE_COMPANY_TABLE "CREATE TABLE Companies"\
     "("\
-    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "id BLOB PRIMARY KEY,"\
     "name TEXT,"\
     "jur_name TEXT,"\
     "address TEXT,"\
@@ -42,11 +42,11 @@
 
 #define CREATE_EVENT_TABLE "CREATE TABLE Events"\
     "("\
-    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "id BLOB PRIMARY KEY,"\
     "descr TEXT,"\
-    "company_id INTEGER,"\
-    "poc_id INTEGER,"\
-    "project_id INTEGER,"\
+    "company_id BLOB,"\
+    "poc_id BLOB,"\
+    "project_id BLOB,"\
     "type INTEGER,"\
     "outcome TEXT,"\
     "timestamp INTEGER,"\
@@ -57,7 +57,7 @@
 
 #define CREATE_POC_TABLE "CREATE TABLE People"\
     "("\
-    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "id BLOB PRIMARY KEY,"\
     "firstname TEXT,"\
     "secondname TEXT,"\
     "lastname TEXT,"\
@@ -65,17 +65,17 @@
     "phonenum TEXT,"\
     "email TEXT,"\
     "position TEXT,"\
-    "company_id INTEGER"\
+    "company_id BLOB"\
     ")"
 
 #define POC_TABLE_COLUMNS 9
 
 #define CREATE_PROJECT_TABLE "CREATE TABLE Projects"\
     "("\
-    "id INTEGER PRIMARY KEY ASC AUTOINCREMENT,"\
+    "id BLOB PRIMARY KEY,"\
     "title TEXT,"\
     "descr TEXT,"\
-    "company_id INTEGER,"\
+    "company_id BLOB,"\
     "state INTEGER"\
     ")"
 
@@ -383,7 +383,7 @@ static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
     }
     memset((void *)company, 0, sizeof (struct ScribaCompany));
 
-    company->id = id;
+    scriba_id_copy(&(company->id), &id);
     if (name != NULL)
     {
         len = strlen(name);
@@ -473,7 +473,8 @@ static scriba_list_t *companySearch(const char *query, const char *text)
         {
             // we have the data
             // id and name fields should be selected from the table
-            scriba_id_t id = scriba_id_from_string(sqlite3_column_text(stmt, 0));
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *name = sqlite3_column_text(stmt, 1);
             if (name != NULL)
             {
@@ -514,6 +515,7 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
     struct ScribaCompany *company = NULL;
     char query[512];
     sqlite3_stmt *sqlite_stmt = NULL;
+    void *id_blob = scriba_id_to_blob(&id);
 
     if (data == NULL)
     {
@@ -521,9 +523,17 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
     }
 
     // prepare query
-    sprintf(query, "SELECT * FROM Companies WHERE id=%d", id);
+    sprintf(query, "SELECT * FROM Companies WHERE id=?");
 
     if (sqlite3_prepare_v2(data->db, query, -1, &sqlite_stmt, NULL) != SQLITE_OK)
+    {
+        goto error;
+    }
+    if (sqlite3_bind_blob(sqlite_stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto error;
     }
@@ -567,6 +577,10 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
     company->event_list = getEventsByCompany(id);
 
     sqlite3_finalize(sqlite_stmt);
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
     return company;
 
 error:
@@ -577,6 +591,10 @@ error:
     if (sqlite_stmt != NULL)
     {
         sqlite3_finalize(sqlite_stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
 
     return NULL;
@@ -606,41 +624,55 @@ static void addCompany(const char *name, const char *jur_name, const char *addre
                        scriba_inn_t inn, const char *phonenum, const char *email)
 {
     sqlite3_stmt *stmt = NULL;
-    char query[] = "INSERT INTO Companies(name, jur_name, address, inn, phonenum, email) "
-                   "VALUES(?,?,?,?,?,?)";
+    char query[] = "INSERT INTO Companies(id, name, jur_name, address, inn, phonenum, email) "
+                   "VALUES(?,?,?,?,?,?,?)";
     char *inn_str = NULL;
+    scriba_id_t id;
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
         goto exit;
     }
 
+    // generate new company ID
+    scriba_id_create(&id);
+    id_blob = scriba_id_to_blob(&id);
+
     if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 2, jur_name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 2, name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 3, address, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 3, jur_name, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_text(stmt, 4, address, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
     inn_str = scriba_inn_to_string(&inn);
-    if (sqlite3_bind_text(stmt, 4, inn_str, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 5, inn_str, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 5, phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 6, phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 6, email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 7, email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -669,6 +701,10 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
 }
 
 static void updateCompany(const struct ScribaCompany *company)
@@ -677,6 +713,7 @@ static void updateCompany(const struct ScribaCompany *company)
     char query[] = "UPDATE Companies SET name=?,jur_name=?,address=?,inn=?,phonenum=?,email=?"
                    "WHERE id=?";
     char *inn_str = NULL;
+    void *id_blob = NULL;
 
     if ((company == NULL) || (data == NULL))
     {
@@ -712,7 +749,12 @@ static void updateCompany(const struct ScribaCompany *company)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 7, (sqlite3_int64)company->id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&(company->id));
+    if (sqlite3_bind_blob(stmt,
+                          7,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -741,12 +783,17 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
 }
 
 static void removeCompany(scriba_id_t id)
 {
     sqlite3_stmt *stmt = NULL;
     char query[] = "DELETE FROM Companies WHERE id=?";
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -758,7 +805,12 @@ static void removeCompany(scriba_id_t id)
         goto exit;
     }
 
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -783,6 +835,10 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
 }
 
 // create event data structure based on given parameters
@@ -801,16 +857,16 @@ static struct ScribaEvent *fillEventData(scriba_id_t id, const char *descr,
     }
     memset(ret, 0, sizeof (struct ScribaEvent));
 
-    ret->id = id;
+    scriba_id_copy(&(ret->id), &id);
     if (descr != NULL)
     {
         len = strlen(descr);
         ret->descr = (char *)malloc(len + 1);
         strcpy(ret->descr, descr);
     }
-    ret->company_id = company_id;
-    ret->poc_id = poc_id;
-    ret->project_id = project_id;
+    scriba_id_copy(&(ret->company_id), &company_id);
+    scriba_id_copy(&(ret->poc_id), &poc_id);
+    scriba_id_copy(&(ret->project_id), &project_id);
     ret->type = type;
     if (outcome != NULL)
     {
@@ -829,6 +885,7 @@ static scriba_list_t *eventSearch(const char *query, scriba_id_t id)
 {
     scriba_list_t *events = scriba_list_init();
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
 
     if ((data == NULL) || (query == NULL))
     {
@@ -841,7 +898,12 @@ static scriba_list_t *eventSearch(const char *query, scriba_id_t id)
         goto exit;
     }
 
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -859,7 +921,8 @@ static scriba_list_t *eventSearch(const char *query, scriba_id_t id)
         {
             // we have the data
             // event id and description fields are selected from the table
-            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *descr = sqlite3_column_text(stmt, 1);
             int len = strlen(descr);
             if (len > 0)
@@ -890,6 +953,10 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
     return events;
 }
 
@@ -897,6 +964,7 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
 {
     char query[] = "SELECT * FROM Events WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -909,7 +977,12 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
         goto error;
     }
 
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto error;
     }
@@ -941,9 +1014,12 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
     }
 
     const char *descr = sqlite3_column_text(stmt, 1);
-    scriba_id_t company_id = (scriba_id_t)sqlite3_column_int64(stmt, 2);
-    scriba_id_t poc_id = (scriba_id_t)sqlite3_column_int64(stmt, 3);
-    scriba_id_t project_id = (scriba_id_t)sqlite3_column_int64(stmt, 4);
+    scriba_id_t company_id;
+    scriba_id_from_blob(sqlite3_column_blob(stmt, 2), &company_id);
+    scriba_id_t poc_id;
+    scriba_id_from_blob(sqlite3_column_blob(stmt, 3), &poc_id);
+    scriba_id_t project_id;
+    scriba_id_from_blob(sqlite3_column_blob(stmt, 4), &project_id);
     enum ScribaEventType type = (enum ScribaEventType)sqlite3_column_int(stmt, 5);
     const char *outcome = sqlite3_column_text(stmt, 6);
     scriba_time_t timestamp = (scriba_time_t)sqlite3_column_int64(stmt, 7);
@@ -953,12 +1029,20 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
                                               project_id, type, outcome, timestamp,
                                               state);
     sqlite3_finalize(stmt);
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
     return event;
 
 error:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
 
     return NULL;
@@ -993,7 +1077,8 @@ static scriba_list_t *getAllEvents()
         else if (ret == SQLITE_ROW)
         {
             // we have the data
-            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *descr = sqlite3_column_text(stmt, 1);
             int len = strlen(descr);
             if (len > 0)
@@ -1046,49 +1131,81 @@ static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state)
 {
-    char query[] = "INSERT INTO Events (descr,company_id,poc_id,project_id,type,outcome, timestamp, state)"
-                   "VALUES (?,?,?,?,?,?,?,?)";
+    char query[] = "INSERT INTO Events (id,descr,company_id,poc_id,project_id,type,outcome, timestamp, state)"
+                   "VALUES (?,?,?,?,?,?,?,?,?)";
     sqlite3_stmt *stmt = NULL;
+    scriba_id_t id;
+    void *id_blob = NULL;
+    void *company_id_blob = NULL;
+    void *poc_id_blob = NULL;
+    void *project_id_blob = NULL;
 
     if (data == NULL)
     {
         goto exit;
     }
 
+    // create new id
+    scriba_id_create(&id);
+    id_blob = scriba_id_to_blob(&id);
+
     // prepare query
     if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 1, descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 2, (sqlite3_int64)company_id) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 2, descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)poc_id) != SQLITE_OK)
+    company_id_blob = scriba_id_to_blob(&company_id);
+    if (sqlite3_bind_blob(stmt,
+                          3,
+                          company_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 4, (sqlite3_int64)project_id) != SQLITE_OK)
+    poc_id_blob = scriba_id_to_blob(&poc_id);
+    if (sqlite3_bind_blob(stmt,
+                          4,
+                          poc_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int(stmt, 5, (int)type) != SQLITE_OK)
+    project_id_blob = scriba_id_to_blob(&project_id);
+    if (sqlite3_bind_blob(stmt,
+                          5,
+                          project_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 6, outcome, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_int(stmt, 6, (int)type) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 7, (sqlite_int64)timestamp) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 7, outcome, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 8, (sqlite_int64)state) != SQLITE_OK)
+    if (sqlite3_bind_int64(stmt, 8, (sqlite_int64)timestamp) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 9, (sqlite_int64)state) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1113,6 +1230,22 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
+    if (company_id_blob != NULL)
+    {
+        free(company_id_blob);
+    }
+    if (poc_id_blob != NULL)
+    {
+        free(poc_id_blob);
+    }
+    if (project_id_blob != NULL)
+    {
+        free(project_id_blob);
+    }
 }
 
 static void updateEvent(const struct ScribaEvent *event)
@@ -1120,6 +1253,10 @@ static void updateEvent(const struct ScribaEvent *event)
     char query[] = "UPDATE Events SET descr=?,company_id=?,poc_id=?,project_id=?,"
                    "type=?,outcome=?,timestamp=?,state=? WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
+    void *company_id_blob = NULL;
+    void *poc_id_blob = NULL;
+    void *project_id_blob = NULL;
 
     if ((event == NULL) || (data == NULL))
     {
@@ -1135,15 +1272,30 @@ static void updateEvent(const struct ScribaEvent *event)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 2, (sqlite3_int64)(event->company_id)) != SQLITE_OK)
+    company_id_blob = scriba_id_to_blob(&(event->company_id));
+    if (sqlite3_bind_blob(stmt,
+                          2,
+                          company_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)(event->poc_id)) != SQLITE_OK)
+    poc_id_blob = scriba_id_to_blob(&(event->poc_id));
+    if (sqlite3_bind_blob(stmt,
+                          3,
+                          poc_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 4, (sqlite3_int64)(event->project_id)) != SQLITE_OK)
+    project_id_blob = scriba_id_to_blob(&(event->project_id));
+    if (sqlite3_bind_blob(stmt,
+                          4,
+                          project_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1163,7 +1315,12 @@ static void updateEvent(const struct ScribaEvent *event)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 9, (sqlite3_int64)(event->id)) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&(event->id));
+    if (sqlite3_bind_blob(stmt,
+                          9,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1188,12 +1345,29 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
+    if (company_id_blob != NULL)
+    {
+        free(company_id_blob);
+    }
+    if (poc_id_blob != NULL)
+    {
+        free(poc_id_blob);
+    }
+    if (project_id_blob != NULL)
+    {
+        free(project_id_blob);
+    }
 }
 
 static void removeEvent(scriba_id_t id)
 {
     sqlite3_stmt *stmt = NULL;
     char query[] = "DELETE FROM Events WHERE id=?";
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -1205,7 +1379,12 @@ static void removeEvent(scriba_id_t id)
         goto exit;
     }
 
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1229,6 +1408,10 @@ exit:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
 }
 
@@ -1248,7 +1431,7 @@ static struct ScribaPoc *fillPOCData(scriba_id_t id, const char *firstname,
 
     memset(poc, 0, sizeof (struct ScribaPoc));
 
-    poc->id = id;
+    scriba_id_copy(&(poc->id), &id);
     if (firstname != NULL)
     {
         len = strlen(firstname);
@@ -1291,7 +1474,7 @@ static struct ScribaPoc *fillPOCData(scriba_id_t id, const char *firstname,
         poc->position = (char *)malloc(len + 1);
         strcpy(poc->position, position);
     }
-    poc->company_id = company_id;
+    scriba_id_copy(&(poc->company_id), &company_id);
 
     return poc;
 }
@@ -1355,7 +1538,8 @@ static scriba_list_t *pocSearchByStr(const char *query, const char *str)
         else if (ret == SQLITE_ROW)
         {
             // we have the data
-            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *firstname = sqlite3_column_text(stmt, 1);
             const char *secondname = sqlite3_column_text(stmt, 2);
             const char *lastname = sqlite3_column_text(stmt, 3);
@@ -1388,6 +1572,7 @@ static struct ScribaPoc *getPOC(scriba_id_t id)
     struct ScribaPoc *poc = NULL;
     char query[] = "SELECT * FROM People WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -1399,7 +1584,12 @@ static struct ScribaPoc *getPOC(scriba_id_t id)
     {
         goto error;
     }
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto error;
     }
@@ -1430,7 +1620,8 @@ static struct ScribaPoc *getPOC(scriba_id_t id)
         goto error;
     }
 
-    scriba_id_t poc_id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+    scriba_id_t poc_id;
+    scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &poc_id);
     const char *firstname = (const char *)sqlite3_column_text(stmt, 1);
     const char *secondname = (const char *)sqlite3_column_text(stmt, 2);
     const char *lastname = (const char *)sqlite3_column_text(stmt, 3);
@@ -1438,17 +1629,26 @@ static struct ScribaPoc *getPOC(scriba_id_t id)
     const char *phonenum = (const char *)sqlite3_column_text(stmt, 5);
     const char *email = (const char *)sqlite3_column_text(stmt, 6);
     const char *position = (const char *)sqlite3_column_text(stmt, 7);
-    scriba_id_t company_id = (scriba_id_t)sqlite3_column_int64(stmt, 8);
+    scriba_id_t company_id;
+    scriba_id_from_blob(sqlite3_column_blob(stmt, 8), &company_id);
 
     poc = fillPOCData(poc_id, firstname, secondname, lastname, mobilenum, phonenum,
                       email, position, company_id);
     sqlite3_finalize(stmt);
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
     return poc;
 
 error:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
 
     return NULL;
@@ -1482,7 +1682,8 @@ static scriba_list_t *getAllPeople()
         else if (ret == SQLITE_ROW)
         {
             // we have the data
-            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *firstname = sqlite3_column_text(stmt, 1);
             const char *secondname = sqlite3_column_text(stmt, 2);
             const char *lastname = sqlite3_column_text(stmt, 3);
@@ -1607,7 +1808,8 @@ static scriba_list_t *getPOCByName(const char *firstname,
         else if (ret == SQLITE_ROW)
         {
             // we have the data
-            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *firstname = sqlite3_column_text(stmt, 1);
             const char *secondname = sqlite3_column_text(stmt, 2);
             const char *lastname = sqlite3_column_text(stmt, 3);
@@ -1639,6 +1841,7 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id)
     scriba_list_t *people = scriba_list_init();
     sqlite3_stmt *stmt = NULL;
     char query[] = "SELECT id,firstname,secondname,lastname FROM People WHERE company_id=?";
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -1650,7 +1853,12 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1667,7 +1875,8 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id)
         else if (ret == SQLITE_ROW)
         {
             // we have the data
-            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *firstname = sqlite3_column_text(stmt, 1);
             const char *secondname = sqlite3_column_text(stmt, 2);
             const char *lastname = sqlite3_column_text(stmt, 3);
@@ -1690,6 +1899,10 @@ exit:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
     return people;
 }
@@ -1717,48 +1930,68 @@ static void addPOC(const char *firstname, const char *secondname, const char *la
                    const char *position, scriba_id_t company_id)
 {
     sqlite3_stmt *stmt = NULL;
-    char query[] = "INSERT INTO People(firstname, secondname, lastname, mobilenum, phonenum,"
-                   "email,position,company_id) VALUES(?,?,?,?,?,?,?,?)";
+    char query[] = "INSERT INTO People(id, firstname, secondname, lastname, mobilenum, phonenum,"
+                   "email,position,company_id) VALUES(?,?,?,?,?,?,?,?,?)";
+    scriba_id_t id;
+    void *id_blob = NULL;
+    void *company_id_blob = NULL;
 
     if (data == NULL)
     {
         goto exit;
     }
 
+    // create new scriba id
+    scriba_id_create(&id);
+    id_blob = scriba_id_to_blob(&id);
+
     // prepare query
     if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 1, firstname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 2, secondname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 2, firstname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 3, lastname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 3, secondname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 4, mobilenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 4, lastname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 5, phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 5, mobilenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 6, email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 6, phonenum, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 7, position, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 7, email, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 8, (sqlite3_int64)company_id) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 8, position, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    company_id_blob = scriba_id_to_blob(&company_id);
+    if (sqlite3_bind_blob(stmt,
+                          9,
+                          company_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1783,6 +2016,14 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
+    if (company_id_blob != NULL)
+    {
+        free(company_id_blob);
+    }
 }
 
 static void updatePOC(const struct ScribaPoc *poc)
@@ -1790,6 +2031,8 @@ static void updatePOC(const struct ScribaPoc *poc)
     char query[] = "UPDATE People SET firstname=?,secondname=?,lastname=?,mobilenum=?,"
                    "phonenum=?,email=?,position=?,company_id=? WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
+    void *company_id_blob = NULL;
 
     if ((data == NULL) || (poc == NULL))
     {
@@ -1829,11 +2072,21 @@ static void updatePOC(const struct ScribaPoc *poc)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 8, (sqlite3_int64)(poc->company_id)) != SQLITE_OK)
+    company_id_blob = scriba_id_to_blob(&(poc->company_id));
+    if (sqlite3_bind_blob(stmt,
+                          8,
+                          company_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 9, (sqlite3_int64)(poc->id)) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&(poc->id));
+    if (sqlite3_bind_blob(stmt,
+                          9,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1858,12 +2111,21 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
+    if (company_id_blob != NULL)
+    {
+        free(company_id_blob);
+    }
 }
 
 static void removePOC(scriba_id_t id)
 {
     char query[] = "DELETE FROM People WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -1875,7 +2137,12 @@ static void removePOC(scriba_id_t id)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1899,6 +2166,10 @@ exit:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
 }
 
@@ -1914,7 +2185,7 @@ static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, 
     }
     memset(project, 0, sizeof (struct ScribaProject));
 
-    project->id = id;
+    scriba_id_copy(&(project->id), &id);
     if (title != NULL)
     {
         len = strlen(title);
@@ -1927,7 +2198,7 @@ static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, 
         project->descr = (char *)malloc(len + 1);
         strcpy(project->descr, descr);
     }
-    project->company_id = company_id;
+    scriba_id_copy(&(project->company_id), &company_id);
     project->state = state;
 
     return project;
@@ -1951,7 +2222,8 @@ static scriba_list_t *projectSearch(sqlite3_stmt *stmt)
         {
             // we have the data
             // id and title fields are always selected from the table
-            scriba_id_t id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
             const char *title = sqlite3_column_text(stmt, 1);
             int len = strlen(title);
             if (len > 0)
@@ -1985,6 +2257,7 @@ static struct ScribaProject *getProject(scriba_id_t id)
 {
     char query[] = "SELECT * FROM Projects WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -1996,7 +2269,12 @@ static struct ScribaProject *getProject(scriba_id_t id)
     {
         goto error;
     }
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto error;
     }
@@ -2026,20 +2304,30 @@ static struct ScribaProject *getProject(scriba_id_t id)
     {
         goto error;
     }
-    scriba_id_t project_id = (scriba_id_t)sqlite3_column_int64(stmt, 0);
+    scriba_id_t project_id;
+    scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &project_id);
     const char *title = (const char*)sqlite3_column_text(stmt, 1);
     const char *descr = (const char*)sqlite3_column_text(stmt, 2);
-    scriba_id_t company_id = (scriba_id_t)sqlite3_column_int64(stmt, 3);
+    scriba_id_t company_id;
+    scriba_id_from_blob(sqlite3_column_blob(stmt, 3), &company_id);
     enum ScribaProjectState state = (enum ScribaProjectState)sqlite3_column_int(stmt, 4);
 
     struct ScribaProject *project = fillProjectData(project_id, title, descr, company_id, state);
     sqlite3_finalize(stmt);
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
     return project;
 
 error:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
     return NULL;
 }
@@ -2074,6 +2362,7 @@ static scriba_list_t *getProjectsByCompany(scriba_id_t id)
 {
     char query[] = "SELECT id,title FROM Projects WHERE company_id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -2084,17 +2373,30 @@ static scriba_list_t *getProjectsByCompany(scriba_id_t id)
     {
         goto error;
     }
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto error;
     }
 
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
     return projectSearch(stmt);
  
 error:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
     // we have to return an empty list, can't return NULL
     return (scriba_list_init());
@@ -2133,33 +2435,53 @@ error:
 static void addProject(const char *title, const char *descr, scriba_id_t company_id,
                        enum ScribaProjectState state)
 {
-    char query[] = "INSERT INTO Projects(title,descr,company_id,state) "
-                   "VALUES(?,?,?,?)";
+    char query[] = "INSERT INTO Projects(id,title,descr,company_id,state) "
+                   "VALUES(?,?,?,?,?)";
     sqlite3_stmt *stmt = NULL;
+    scriba_id_t id;
+    void *id_blob = NULL;
+    void *company_id_blob = NULL;
 
     if (data == NULL)
     {
         goto exit;
     }
 
+    // create new scriba id
+    scriba_id_create(&id);
+    id_blob = scriba_id_to_blob(&id);
+
     // prepare query
     if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 1, title, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_text(stmt, 2, descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 2, title, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)company_id) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 3, descr, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
-    if (sqlite3_bind_int(stmt, 4, (int)state) != SQLITE_OK)
+    company_id_blob = scriba_id_to_blob(&company_id);
+    if (sqlite3_bind_blob(stmt,
+                          4,
+                          company_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int(stmt, 5, (int)state) != SQLITE_OK)
     {
         goto exit;
     }
@@ -2184,12 +2506,22 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
+    if (company_id_blob != NULL)
+    {
+        free(company_id_blob);
+    }
 }
 
 static void updateProject(const struct ScribaProject *project)
 {
     char query[] = "UPDATE Projects SET title=?,descr=?,company_id=?,state=? WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
+    void *company_id_blob = NULL;
 
     if ((data == NULL) || (project == NULL))
     {
@@ -2209,7 +2541,12 @@ static void updateProject(const struct ScribaProject *project)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 3, (sqlite3_int64)(project->company_id)) != SQLITE_OK)
+    company_id_blob = scriba_id_to_blob(&(project->company_id));
+    if (sqlite3_bind_blob(stmt,
+                          3,
+                          company_id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -2217,7 +2554,12 @@ static void updateProject(const struct ScribaProject *project)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 5, (sqlite3_int64)(project->id)) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&(project->id));
+    if (sqlite3_bind_blob(stmt,
+                          5,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -2242,12 +2584,21 @@ exit:
     {
         sqlite3_finalize(stmt);
     }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
+    }
+    if (company_id_blob != NULL)
+    {
+        free(company_id_blob);
+    }
 }
 
 static void removeProject(scriba_id_t id)
 {
     char query[] = "DELETE FROM Projects WHERE id=?";
     sqlite3_stmt *stmt = NULL;
+    void *id_blob = NULL;
 
     if (data == NULL)
     {
@@ -2259,7 +2610,12 @@ static void removeProject(scriba_id_t id)
     {
         goto exit;
     }
-    if (sqlite3_bind_int64(stmt, 1, (sqlite3_int64)id) != SQLITE_OK)
+    id_blob = scriba_id_to_blob(&id);
+    if (sqlite3_bind_blob(stmt,
+                          1,
+                          id_blob,
+                          SCRIBA_ID_BLOB_SIZE,
+                          SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -2283,5 +2639,9 @@ exit:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    if (id_blob != NULL)
+    {
+        free(id_blob);
     }
 }
