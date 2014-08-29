@@ -122,7 +122,8 @@ static fb::Offset<Company> serialize_company(scriba_id_t id, fb::FlatBufferBuild
     ScribaCompany *company = scriba_getCompany(id);
 
     CompanyBuilder cb(fbb);
-    cb.add_id(id);
+    ID bufID(id._high, id._low);
+    cb.add_id(&bufID);
     cb.add_name(fbb.CreateString(company->name));
     cb.add_jur_name(fbb.CreateString(company->jur_name));
     cb.add_address(fbb.CreateString(company->address));
@@ -141,11 +142,15 @@ static fb::Offset<Event> serialize_event(scriba_id_t id, fb::FlatBufferBuilder &
     ScribaEvent *event = scriba_getEvent(id);
 
     EventBuilder evb(fbb);
-    evb.add_id(id);
+    ID bufID(id._high, id._low);
+    evb.add_id(&bufID);
     evb.add_descr(fbb.CreateString(event->descr));
-    evb.add_company_id(event->company_id);
-    evb.add_project_id(event->project_id);
-    evb.add_poc_id(event->poc_id);
+    ID companyID(event->company_id._high, event->company_id._low);
+    evb.add_company_id(&companyID);
+    ID projectID(event->project_id._high, event->project_id._low);
+    evb.add_project_id(&projectID);
+    ID pocID(event->poc_id._high, event->poc_id._low);
+    evb.add_poc_id(&pocID);
     switch(event->type)
     {
     case EVENT_TYPE_MEETING:
@@ -182,7 +187,8 @@ static fb::Offset<POC> serialize_poc(scriba_id_t id, fb::FlatBufferBuilder &fbb)
     ScribaPoc *poc = scriba_getPOC(id);
 
     POCBuilder pb(fbb);
-    pb.add_id(id);
+    ID bufID(id._high, id._low);
+    pb.add_id(&bufID);
     pb.add_firstname(fbb.CreateString(poc->firstname));
     pb.add_secondname(fbb.CreateString(poc->secondname));
     pb.add_lastname(fbb.CreateString(poc->lastname));
@@ -190,7 +196,8 @@ static fb::Offset<POC> serialize_poc(scriba_id_t id, fb::FlatBufferBuilder &fbb)
     pb.add_phonenum(fbb.CreateString(poc->phonenum));
     pb.add_email(fbb.CreateString(poc->email));
     pb.add_position(fbb.CreateString(poc->position));
-    pb.add_company_id(poc->company_id);
+    ID companyID(poc->company_id._high, poc->company_id._low);
+    pb.add_company_id(&companyID);
 
     scriba_freePOCData(poc);
     return pb.Finish();
@@ -201,10 +208,12 @@ static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuild
     ScribaProject *project = scriba_getProject(id);
 
     ProjectBuilder prjb(fbb);
-    prjb.add_id(id);
+    ID bufID(id._high, id._low);
+    prjb.add_id(&bufID);
     prjb.add_title(fbb.CreateString(project->title));
     prjb.add_descr(fbb.CreateString(project->descr));
-    prjb.add_company_id(project->company_id);
+    ID companyID(project->company_id._high, project->company_id._low);
+    prjb.add_company_id(&companyID);
     switch(project->state)
     {
     case PROJECT_STATE_INITIAL:

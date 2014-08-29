@@ -47,9 +47,15 @@ enum ProjectState:byte
     PAYMENT = 7
 }
 
+struct ID
+{
+    high:ulong;
+    low:ulong;
+}
+
 table Company
 {
-    id:long;
+    id:ID;
     name:string;
     jur_name:string;
     address:string;
@@ -60,11 +66,11 @@ table Company
 
 table Event
 {
-    id:long;
+    id:ID;
     descr:string;
-    company_id:long;
-    project_id:long;
-    poc_id:long;
+    company_id:ID;
+    project_id:ID;
+    poc_id:ID;
     type:EventType;
     outcome:string;
     timestamp:long;
@@ -73,7 +79,7 @@ table Event
 
 table POC
 {
-    id:long;
+    id:ID;
     firstname:string;
     secondname:string;
     lastname:string;
@@ -81,15 +87,15 @@ table POC
     phonenum:string;
     email:string;
     position:string;
-    company_id:long;
+    company_id:ID;
 }
 
 table Project
 {
-    id:long;
+    id:ID;
     title:string;
     descr:string;
-    company_id:long;
+    company_id:ID;
     state:ProjectState;
 }
 
