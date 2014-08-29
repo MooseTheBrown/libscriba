@@ -36,6 +36,9 @@ static jstring utf8_to_java_string(JNIEnv *env, jclass this, const char *utf8);
 // convert scriba list to an array of DataDescriptor objects
 static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, scriba_list_t *list);
 
+// convert Java UUID object to scriba_id_t
+static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id);
+
 /* Java passes strings through JNI using "modified" UTF-8 encoding, which
    can lead to disaster if we just consider them normal UTF-8 strings. To
    work around this we manually convert all Java strings to UTF-8 byte arrays
@@ -210,6 +213,47 @@ exit:
     return java_array;
 }
 
+// convert Java UUID object to scriba_id_t
+static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id)
+{
+    jclass uuid_class = NULL;
+    jmethodID uuid_get_high_id = NULL;
+    jmethodID uuid_get_low_id = NULL;
+    jlong id_high = 0;
+    jlong id_low = 0;
+
+    if ((uuid == NULL) || (id == NULL))
+    {
+        return;
+    }
+
+    uuid_class = (*env)->GetObjectClass(env, uuid);
+    if (uuid_class == NULL)
+    {
+        return;
+    }
+
+    uuid_get_high_id = (*env)->GetMethodID(env,
+                                           uuid_class,
+                                           "getMostSignificantBits",
+                                           "(V)J");
+    uuid_get_low_id = (*env)->GetMethodID(env,
+                                          uuid_class,
+                                          "getLeastSignificantBits",
+                                          "(V)J");
+
+    if ((uuid_get_high_id == NULL) || (uuid_get_low_id == NULL))
+    {
+        return;
+    }
+
+    id_high = (*env)->CallLongMethod(env, uuid, uuid_get_high_id);
+    id_low = (*env)->CallLongMethod(env, uuid, uuid_get_low_id);
+
+    id->_high = (unsigned long long)id_high;
+    id->_low = (unsigned long long id_low);
+}
+
 
 
 // implementation of native functions from ScribaDB class
@@ -370,11 +414,11 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_cleanup(JNIEnv *env
 
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEnv *env,
                                                                            jclass this,
-                                                                           jlong id)
+                                                                           jobject id)
 {
     jobject java_company = NULL;
     jclass company_class = NULL;
-    struct ScribaCompany *company = scriba_getCompany((scriba_id_t)id);
+    struct ScribaCompany *company = NULL;
     jstring name = NULL;
     jstring jur_name = NULL;
     jstring address = NULL;
@@ -386,6 +430,8 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEn
     jobjectArray event_list = NULL;
     char *inn_string = NULL;
     jmethodID company_ctor_id = NULL;
+
+    company = scriba_getCompany((scriba_id_t)id);
 
     if (company == NULL)
     {
@@ -413,13 +459,13 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEn
     event_list = scriba_list_to_data_descr_array(env, this, company->event_list);
 
     company_ctor_id = (*env)->GetMethodID(env,
-                                       company_class,
-                                       "<init>",
-                                       "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;"
-                                       "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;"
-                                       "[Lorg/scribacrm/libscriba/DataDescriptor;"
-                                       "[Lorg/scribacrm/libscriba/DataDescriptor;"
-                                       "[Lorg/scribacrm/libscriba/DataDescriptor;)V");
+                                          company_class,
+                                          "<init>",
+                                          "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;"
+                                          "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;"
+                                          "[Lorg/scribacrm/libscriba/DataDescriptor;"
+                                          "[Lorg/scribacrm/libscriba/DataDescriptor;"
+                                          "[Lorg/scribacrm/libscriba/DataDescriptor;)V");
     if (company_ctor_id == NULL)
     {
         goto exit;

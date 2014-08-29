@@ -20,6 +20,8 @@
 
 package org.scribacrm.libscriba;
 
+import java.util.UUID;
+
 public final class Project {
 
     public static class State {
@@ -33,17 +35,26 @@ public final class Project {
         public static final byte PAYMENT = 7;
     }
 
-    public final long id;
+    public final UUID id;
     public final String title;
     public final String descr;
-    public final long company_id;
+    public final UUID company_id;
     public final byte state;
 
-    public Project(long id, String title, String descr, long company_id, byte state) {
+    public Project(UUID id, String title, String descr, UUID company_id, byte state) {
         this.id = id;
         this.title = title;
         this.descr = descr;
         this.company_id = company_id;
+        this.state = state;
+    }
+
+    public Project(long id_high, long id_low, String title, String descr,
+                   long company_id_high, long company_id_low, byte state) {
+        this.id = new UUID(id_high, id_low);
+        this.title = title;
+        this.descr = descr;
+        this.company_id = new UUID(company_id_high, company_id_low);
         this.state = state;
     }
 }

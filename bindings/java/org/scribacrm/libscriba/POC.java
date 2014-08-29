@@ -20,9 +20,11 @@
 
 package org.scribacrm.libscriba;
 
+import java.util.UUID;
+
 public final class POC {
    
-    public final long id;
+    public final UUID id;
     public final String firstname;
     public final String secondname;
     public final String lastname;
@@ -30,10 +32,10 @@ public final class POC {
     public final String phonenum;
     public final String email;
     public final String position;
-    public final long company_id; 
+    public final UUID company_id; 
 
-    public POC(long id, String firstname, String secondname, String lastname, String mobilenum,
-               String phonenum, String email, String position, long company_id) {
+    public POC(UUID id, String firstname, String secondname, String lastname, String mobilenum,
+               String phonenum, String email, String position, UUID company_id) {
         this.id = id;
         this.firstname = firstname;
         this.secondname = secondname;
@@ -43,5 +45,20 @@ public final class POC {
         this.email = email;
         this.position = position;
         this.company_id = company_id;
+    }
+
+    public POC(long id_high, long id_low, String firstname,
+               String secondname, String lastname, String mobilenum,
+               String phonenum, String email, String position,
+               long company_id_high, long company_id_low) {
+        this.id = new UUID(id_high, id_low);
+        this.firstname = firstname;
+        this.secondname = secondname;
+        this.lastname = lastname;
+        this.mobilenum = mobilenum;
+        this.phonenum = phonenum;
+        this.email = email;
+        this.position = position;
+        this.company_id = new UUID(company_id_high, company_id_low);
     }
 }
