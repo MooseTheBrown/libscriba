@@ -46,6 +46,7 @@ list(APPEND LIBSCRIBA_SRC ${libscriba_SOURCE_DIR}/sqlite-backend/sqlite3.c
 
 include_directories (${libscriba_SOURCE_DIR}/include)
 include_directories (${libscriba_SOURCE_DIR}/sqlite-backend)
+include_directories (${libscriba_SOURCE_DIR})
 
 # libraries linked with libscriba
 set(LIBSCRIBA_REQUIRED_LIBS)
@@ -80,7 +81,6 @@ endif (BUILD_JAVA_BINDINGS)
 # unit tests
 if (BUILD_UNIT_TESTS)
     # main library tests
-    include_directories (${libscriba_SOURCE_DIR})
     set (LIBSCRIBA_UT_SRC ${libscriba_SOURCE_DIR}/test/main.c
                           ${libscriba_SOURCE_DIR}/test/mock_backend.c
                           ${libscriba_SOURCE_DIR}/test/frontend_test.c
