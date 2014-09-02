@@ -25,13 +25,14 @@ import org.junit.*;
 import static org.junit.Assert.*;
 import java.nio.file.*;
 import java.io.IOException;
+import java.util.UUID;
 
 public class ProjectTest {
 
     private static final String testDBLocation = "./java_test_db";
 
-    private long _company1_id = 0;
-    private long _company2_id = 0;
+    private UUID _company1_id = null;
+    private UUID _company2_id = null;
 
     @Before
     public void setUp() {
@@ -91,10 +92,10 @@ public class ProjectTest {
     public void testProjectData() {
         DataDescriptor[] projects = ScribaDB.getProjectsByCompany(_company2_id);
         Project project = ScribaDB.getProject(projects[0].id);
-        assertEquals("Project id match", projects[0].id, project.id);
+        assertTrue("Project id match", projects[0].id.equals(project.id));
         assertTrue("Project title match", project.title.equals("Project 3"));
         assertTrue("Project descr match", project.descr.equals("Selling other useless stuff"));
-        assertEquals("Company id match", _company2_id, project.company_id);
+        assertTrue("Company id match", _company2_id.equals(project.company_id));
         assertEquals("Project state match", Project.State.REJECTED, project.state);
     }
 

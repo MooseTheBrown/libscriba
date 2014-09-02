@@ -26,17 +26,18 @@ import static org.junit.Assert.*;
 import java.nio.file.*;
 import java.io.IOException;
 import java.util.Date;
+import java.util.UUID;
 
 public class EventTest {
 
     private static final String testDBLocation = "./java_test_db";
 
-    private long _company1_id = 0;
-    private long _company2_id = 0;
-    private long _project1_id = 0;
-    private long _project2_id = 0;
-    private long _poc1_id = 0;
-    private long _poc2_id = 0;
+    private UUID _company1_id = null;
+    private UUID _company2_id = null;
+    private UUID _project1_id = null;
+    private UUID _project2_id = null;
+    private UUID _poc1_id = null;
+    private UUID _poc2_id = null;
     private long _cur_ts = 0;
 
     @Before
@@ -112,11 +113,11 @@ public class EventTest {
     public void testGetEvent() {
         DataDescriptor[] events = ScribaDB.getEventsByCompany(_company1_id);
         Event event = ScribaDB.getEvent(events[0].id);
-        assertEquals("Event id match", events[0].id, event.id);
+        assertTrue("Event id match", events[0].id.equals(event.id));
         assertTrue("Event descr match", event.descr.equals("Blahblah"));
-        assertEquals("Company id match", _company1_id, event.company_id);
-        assertEquals("Poc id match", _poc1_id, event.poc_id);
-        assertEquals("Project id match", _project1_id, event.project_id);
+        assertTrue("Company id match", _company1_id.equals(event.company_id));
+        assertTrue("Poc id match", _poc1_id.equals(event.poc_id));
+        assertTrue("Project id match", _project1_id.equals(event.project_id));
         assertEquals("Event type match", Event.Type.TASK, event.type);
         assertTrue("Event outcome match", event.outcome.equals("Nothing useful"));
         assertEquals("Event timestamp match", _cur_ts, event.timestamp);

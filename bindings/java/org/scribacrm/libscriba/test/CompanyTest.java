@@ -25,6 +25,7 @@ import org.junit.*;
 import static org.junit.Assert.*;
 import java.nio.file.*;
 import java.io.IOException;
+import java.util.UUID;
 
 public class CompanyTest {
 
@@ -128,7 +129,7 @@ public class CompanyTest {
     public void testCompanyLists() {
         // add people, projects and events connected to a company
         DataDescriptor[] companies = ScribaDB.getCompaniesByName("TestCompany#2");
-        long company_id = companies[0].id;
+        UUID company_id = companies[0].id;
 
         ScribaDB.addPOC("Mikhail", "Alekseevich", "Sapozhnikov", "999888777",
                         "6543210", "msapozhnikov@test.com", "SW engineer", company_id);
@@ -136,32 +137,32 @@ public class CompanyTest {
                         "6543210", "ksapozhnikova@test.com", "The boss", company_id);
 
         DataDescriptor[] poc1 = ScribaDB.getPOCByName("Mikhail", "Alekseevich", "Sapozhnikov");
-        long poc1_id = poc1[0].id;
+        UUID poc1_id = poc1[0].id;
         DataDescriptor[] poc2 = ScribaDB.getPOCByName("Kseniia", "Nikolayevna", "Sapozhnikova");
-        long poc2_id = poc2[0].id;
+        UUID poc2_id = poc2[0].id;
 
         ScribaDB.addProject("SW development", "Just moosing around really", company_id,
                             Project.State.EXECUTION);
 
         DataDescriptor[] project = ScribaDB.getProjectsByCompany(company_id);
-        long project_id = project[0].id;
+        UUID project_id = project[0].id;
 
         ScribaDB.addEvent("Status meeting", company_id, poc1_id, project_id, 
                           Event.Type.MEETING, "Discussed Byzantine empire", 0,
                           Event.State.SCHEDULED);
         DataDescriptor[] event = ScribaDB.getEventsByCompany(company_id);
-        long event_id = event[0].id;
+        UUID event_id = event[0].id;
 
         // now get company data and check that the lists (people, projects, events)
         // are populated correctly
         Company company = ScribaDB.getCompany(company_id);
         assertEquals("2 people in the company", 2, company.poc_list.length);
-        assertTrue("poc id match", (poc1_id == company.poc_list[0].id) ||
-                                   (poc1_id == company.poc_list[1].id));
+        assertTrue("poc id match", (poc1_id.equals(company.poc_list[0].id)) ||
+                                   (poc1_id.equals(company.poc_list[1].id)));
         assertEquals("1 project in the company", 1, company.proj_list.length);
-        assertEquals("project id match", project_id, company.proj_list[0].id);
+        assertTrue("project id match", project_id.equals(company.proj_list[0].id));
         assertEquals("1 event in the company", 1, company.event_list.length);
-        assertEquals("event id match", event_id, company.event_list[0].id);
+        assertTrue("event id match", event_id.equals(company.event_list[0].id));
     }
 
     @Test
