@@ -26,6 +26,7 @@
 #include "project.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // local utility functions
 
@@ -237,11 +238,11 @@ static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id)
     uuid_get_high_id = (*env)->GetMethodID(env,
                                            uuid_class,
                                            "getMostSignificantBits",
-                                           "(V)J");
+                                           "()J");
     uuid_get_low_id = (*env)->GetMethodID(env,
                                           uuid_class,
                                           "getLeastSignificantBits",
-                                          "(V)J");
+                                          "()J");
 
     if ((uuid_get_high_id == NULL) || (uuid_get_low_id == NULL))
     {
