@@ -36,6 +36,10 @@ static fb::Offset<Company> serialize_company(scriba_id_t id, fb::FlatBufferBuild
 static fb::Offset<Event> serialize_event(scriba_id_t id, fb::FlatBufferBuilder &fbb);
 static fb::Offset<POC> serialize_poc(scriba_id_t id, fb::FlatBufferBuilder &fbb);
 static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuilder &fbb);
+static bool deserialize_company(Company *company, enum ScribaMergeStrategy strategy);
+static bool deserialize_event(Event *event, enum ScribaMergeStrategy strategy);
+static bool deserialize_poc(POC *poc, enum ScribaMergeStrategy strategy);
+static bool deserialize_project(Project *project, enum ScribaMergeStrategy strategy);
 
 // externally visible functions should use C linkage
 #ifdef __cplusplus
@@ -107,8 +111,50 @@ void *serialize(scriba_list_t *companies,
 
 // read entry data from the given buffer and store it in the local database
 // according to the given merge strategy
-enum ScribaMergeStatus deserialize(void *buf, unsigned long buflen)
+enum ScribaMergeStatus deserialize(void *buf, unsigned long buflen,
+                                   enum ScribaMergeStrategy strategy)
 {
+    Entries *entries = GetEntries(buf);
+    bool conflicts = false;
+
+    fb::Vector<fb::Offset<Company>> *companies = entries->companies();
+    for (fb::uoffset_t i = 0; i < companies->Length(); i++)
+    {
+        bool ret = deserialize_company(companies->Get(i));
+        if (ret == true)
+        {
+            conflicts = true;
+        }
+    }
+    fb::Vector<fb::Offset<Event>> *events = entries->events();
+    for (fb::uoffset_t i = 0; i < events->Length(); i++)
+    {
+        bool ret = deserialize_event(events->Get(i));
+        if (ret == true)
+        {
+            conflicts = true;
+        }
+    }
+    fb::Vector<fb::Offset<POC>> *people = entries->people();
+    for (fb::uoffset_t i = 0; i < people->Length(); i++)
+    {
+        bool ret = deserialize_poc(people->Get(i));
+        if (ret == true)
+        {
+            conflicts = true;
+        }
+    }
+    fb::Vector<fb::Offset<Project>> *projects = entries->projects();
+    for (fb::uoffset_t i = 0; i < projects->Length(); i++)
+    {
+        bool ret = deserialize_project(projects->Get(i));
+        if (ret == true)
+        {
+            conflicts = true;
+        }
+    }
+
+    return (conflicts == true ? SCRIBA_MERGE_CONFLICTS : SCRIBA_MERGE_OK);
 }
 
 #ifdef __cplusplus
@@ -244,6 +290,63 @@ static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuild
 
     scriba_freeProjectData(project);
     return prjb.Finish();
+}
+
+static bool deserialize_company(Company *company, enum ScribaMergeStrategy strategy)
+{
+    scriba_id_t company_id;
+    bool ret = false;
+
+    company_id._high = (unsigned long long)(company->ID->high());
+    company_id._low = (unsigned long long)(company->ID->low());
+
+    ScribaCompany *duplicate = scriba_getCompany(company_id);
+    if (duplicate != NULL)
+    {
+        if (strategy == SCRIBA_MERGE_REMOTE_OVERRIDE)
+        {
+
+            ScribaCompany updated_company;
+            scriba_id_copy(&(updated_company.id), &company_id);
+            updated_company.name = company->name->c_str();
+            updated_company.jur_name = company->jur_name->c_str();
+            updated_company.address = company->address->c_str();
+            updated_company.inn = scriba_inn_from_string(company->inn->c_str());
+            updated_company.phonenum = company->phonenum->c_str();
+            updated_company.email = company->email->c_str();
+            scriba_updateCompany(&updated_company);
+        }
+
+        // If merge stragegy is LOCAL_OVERRIDE, we just keep local data.
+        // Manual merge is not supported yet.
+
+        scriba_freeCompanyData(duplicate);
+        duplicate = NULL;
+    }
+    else
+    {
+        // no such company in the local database, add new one
+        scriba_addCompany(company->name->c_str(),
+                          company->jur_name->c_str(),
+                          company->address->c_str(),
+                          scriba_inn_from_string(company->inn->c_str()),
+                          company->phonenum->c_str(),
+                          company->email->c_str());
+    }
+
+    return false;
+}
+
+static bool deserialize_event(Event *event, enum ScribaMergeStrategy strategy)
+{
+}
+
+static bool deserialize_poc(POC *poc, enum ScribaMergeStrategy strategy)
+{
+}
+
+static bool deserialize_project(Project *project, enum ScribaMergeStrategy strategy)
+{
 }
 
 } // namespace scriba

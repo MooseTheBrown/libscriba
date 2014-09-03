@@ -23,6 +23,11 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // different merge strageties used when importing entries from a binary buffer
 enum ScribaMergeStrategy
 {
@@ -30,15 +35,10 @@ enum ScribaMergeStrategy
     SCRIBA_MERGE_REMOTE_OVERRIDE,       // overwrite local data in case of conflicts
     SCRIBA_MERGE_MANUAL
     /* When manual merge is used during de-serialization, the library creates
-     * additional entry in the database for conflicting object. This duplicate
-     * entry is clearly marked as duplicate of specific scriba ID, so that application
-     * could retrieve all such entries and allow user to manually merge their data
-     * before removing duplicates. Or it could leave them in the database forever.
-     * Note that comparison method is different for each entry type: e.g. companies
-     * can be considered equal if they have the same name and juridicial name
-     * (if juridicial name is set for both, or just name otherwise), for people the
-     * library checks first, second and last name etc. See the de-serialization code
-     * for more details */
+     * additional entry in the database for each conflicting object. This entry
+     * is marked as duplicate of specific scriba ID, so that application could
+     * retrieve all such entries and allow user to manually merge their data
+     * before removing duplicates. */
 };
 
 // outcome of binary buffer data merge with local DB
@@ -58,6 +58,11 @@ void *serialize(scriba_list_t *companies,
 
 // read entry data from the given buffer and store it in the local database
 // according to the given merge strategy
-enum ScribaMergeStatus deserialize(void *buf, unsigned long buflen);
+enum ScribaMergeStatus deserialize(void *buf, unsigned long buflen,
+                                   enum ScribaMergeStrategy strategy);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SERIALIZER_H
