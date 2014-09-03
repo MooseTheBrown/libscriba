@@ -20,6 +20,8 @@
 
 package org.scribacrm.libscriba;
 
+import java.util.UUID;
+
 public final class Event {
 
     public static class Type {
@@ -34,23 +36,39 @@ public final class Event {
         public static final byte CANCELLED = 2;
     }
 
-    public final long id;
+    public final UUID id;
     public final String descr;
-    public final long company_id;
-    public final long poc_id;
-    public final long project_id;
+    public final UUID company_id;
+    public final UUID poc_id;
+    public final UUID project_id;
     public final byte type;
     public final String outcome;
     public final long timestamp;
     public final byte state;
 
-    public Event(long id, String descr, long company_id, long poc_id, long project_id,
+    public Event(UUID id, String descr, UUID company_id, UUID poc_id, UUID project_id,
                  byte type, String outcome, long timestamp, byte state) {
         this.id = id;
         this.descr = descr;
         this.company_id = company_id;
         this.poc_id = poc_id;
         this.project_id = project_id;
+        this.type = type;
+        this.outcome = outcome;
+        this.timestamp = timestamp;
+        this.state = state;
+    }
+
+    public Event(long id_high, long id_low, String descr,
+                 long company_id_high, long company_id_low,
+                 long poc_id_high, long poc_id_low,
+                 long project_id_high, long project_id_low,
+                 byte type, String outcome, long timestamp, byte state) {
+        this.id = new UUID(id_high, id_low);
+        this.descr = descr;
+        this.company_id = new UUID(company_id_high, company_id_low);
+        this.poc_id = new UUID(poc_id_high, poc_id_low);
+        this.project_id = new UUID(project_id_high, project_id_low);
         this.type = type;
         this.outcome = outcome;
         this.timestamp = timestamp;

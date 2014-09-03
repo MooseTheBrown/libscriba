@@ -21,6 +21,7 @@
 package org.scribacrm.libscriba;
 
 import java.io.UnsupportedEncodingException;
+import java.util.UUID;
 
 public final class ScribaDB {
 
@@ -53,7 +54,7 @@ public final class ScribaDB {
     public static native void cleanup();
 
     // company routines
-    public static native Company getCompany(long id);
+    public static native Company getCompany(UUID id);
     public static native DataDescriptor[] getAllCompanies();
     public static native DataDescriptor[] getCompaniesByName(String name);
     public static native DataDescriptor[] getCompaniesByJurName(String jur_name);
@@ -61,41 +62,41 @@ public final class ScribaDB {
     public static native void addCompany(String name, String jur_name, String address,
                            String inn, String phonenum, String email);
     public static native void updateCompany(Company company);
-    public static native void removeCompany(long id);
+    public static native void removeCompany(UUID id);
 
     // poc routines
-    public static native POC getPoc(long id);
+    public static native POC getPoc(UUID id);
     public static native DataDescriptor[] getAllPeople();
     public static native DataDescriptor[] getPOCByName(String firstname,
                                                        String secondname,
                                                        String lastname);
-    public static native DataDescriptor[] getPOCByCompany(long id);
+    public static native DataDescriptor[] getPOCByCompany(UUID id);
     public static native DataDescriptor[] getPOCByPosition(String position);
     public static native DataDescriptor[] getPOCByEmail(String email);
     public static native void addPOC(String firstname, String secondname, String lastname,
                               String mobilenum, String phonenum, String email,
-                              String position, long company_id);
+                              String position, UUID company_id);
     public static native void updatePOC(POC poc);
-    public static native void removePOC(long id);
+    public static native void removePOC(UUID id);
 
     // project routines
-    public static native Project getProject(long id);
+    public static native Project getProject(UUID id);
     public static native DataDescriptor[] getAllProjects();
-    public static native DataDescriptor[] getProjectsByCompany(long company_id);
+    public static native DataDescriptor[] getProjectsByCompany(UUID company_id);
     public static native DataDescriptor[] getProjectsByState(byte state);
-    public static native void addProject(String title, String descr, long company_id, byte state);
+    public static native void addProject(String title, String descr, UUID company_id, byte state);
     public static native void updateProject(Project project);
-    public static native void removeProject(long id);
+    public static native void removeProject(UUID id);
 
     // event routines
-    public static native Event getEvent(long id);
+    public static native Event getEvent(UUID id);
     public static native DataDescriptor[] getAllEvents();
-    public static native DataDescriptor[] getEventsByCompany(long company_id);
-    public static native DataDescriptor[] getEventsByPOC(long poc_id);
-    public static native DataDescriptor[] getEventsByProject(long project_id);
-    public static native void addEvent(String descr, long company_id, long poc_id, long project_id, byte type, String outcome, long timestamp, byte state);
+    public static native DataDescriptor[] getEventsByCompany(UUID company_id);
+    public static native DataDescriptor[] getEventsByPOC(UUID poc_id);
+    public static native DataDescriptor[] getEventsByProject(UUID project_id);
+    public static native void addEvent(String descr, UUID company_id, UUID poc_id, UUID project_id, byte type, String outcome, long timestamp, byte state);
     public static native void updateEvent(Event event);
-    public static native void removeEvent(long id);
+    public static native void removeEvent(UUID id);
 
     public static byte[] getUtf8FromString(String str) throws UnsupportedEncodingException {
         if (str == null) {

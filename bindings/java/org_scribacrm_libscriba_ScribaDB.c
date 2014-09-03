@@ -26,6 +26,7 @@
 #include "project.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // local utility functions
 
@@ -35,6 +36,9 @@ static jstring utf8_to_java_string(JNIEnv *env, jclass this, const char *utf8);
 
 // convert scriba list to an array of DataDescriptor objects
 static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, scriba_list_t *list);
+
+// convert Java UUID object to scriba_id_t
+static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id);
 
 /* Java passes strings through JNI using "modified" UTF-8 encoding, which
    can lead to disaster if we just consider them normal UTF-8 strings. To
@@ -154,7 +158,7 @@ static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, sc
     }
     constructor_id = (*env)->GetMethodID(env,
                                       data_descr_class,
-                                      "<init>", "(JLjava/lang/String;)V");
+                                      "<init>", "(JJLjava/lang/String;)V");
     if (constructor_id == NULL)
     {
         goto exit;
@@ -184,11 +188,12 @@ static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, sc
 
     scriba_list_for_each(list, item)
     {
-        jlong item_id = item->id;
+        jlong item_id_high = (jlong)(item->id._high);
+        jlong item_id_low = (jlong)(item->id._low);
         jstring item_text = utf8_to_java_string(env, this, item->text);
 
         data_descriptors[i] = (*env)->NewObject(env, data_descr_class, constructor_id,
-                                             item_id, item_text);
+                                                item_id_high, item_id_low, item_text);
         if (data_descriptors[i] == NULL)
         {
             goto exit;
@@ -208,6 +213,47 @@ exit:
         free(data_descriptors);
     }
     return java_array;
+}
+
+// convert Java UUID object to scriba_id_t
+static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id)
+{
+    jclass uuid_class = NULL;
+    jmethodID uuid_get_high_id = NULL;
+    jmethodID uuid_get_low_id = NULL;
+    jlong id_high = 0;
+    jlong id_low = 0;
+
+    if ((uuid == NULL) || (id == NULL))
+    {
+        return;
+    }
+
+    uuid_class = (*env)->GetObjectClass(env, uuid);
+    if (uuid_class == NULL)
+    {
+        return;
+    }
+
+    uuid_get_high_id = (*env)->GetMethodID(env,
+                                           uuid_class,
+                                           "getMostSignificantBits",
+                                           "()J");
+    uuid_get_low_id = (*env)->GetMethodID(env,
+                                          uuid_class,
+                                          "getLeastSignificantBits",
+                                          "()J");
+
+    if ((uuid_get_high_id == NULL) || (uuid_get_low_id == NULL))
+    {
+        return;
+    }
+
+    id_high = (*env)->CallLongMethod(env, uuid, uuid_get_high_id);
+    id_low = (*env)->CallLongMethod(env, uuid, uuid_get_low_id);
+
+    id->_high = (unsigned long long)id_high;
+    id->_low = (unsigned long long)id_low;
 }
 
 
@@ -370,11 +416,11 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_cleanup(JNIEnv *env
 
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEnv *env,
                                                                            jclass this,
-                                                                           jlong id)
+                                                                           jobject id)
 {
     jobject java_company = NULL;
     jclass company_class = NULL;
-    struct ScribaCompany *company = scriba_getCompany((scriba_id_t)id);
+    struct ScribaCompany *company = NULL;
     jstring name = NULL;
     jstring jur_name = NULL;
     jstring address = NULL;
@@ -386,6 +432,10 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEn
     jobjectArray event_list = NULL;
     char *inn_string = NULL;
     jmethodID company_ctor_id = NULL;
+    scriba_id_t company_id;
+
+    UUID_to_scriba_id(env, id, &company_id);
+    company = scriba_getCompany(company_id);
 
     if (company == NULL)
     {
@@ -413,21 +463,25 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEn
     event_list = scriba_list_to_data_descr_array(env, this, company->event_list);
 
     company_ctor_id = (*env)->GetMethodID(env,
-                                       company_class,
-                                       "<init>",
-                                       "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;"
-                                       "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;"
-                                       "[Lorg/scribacrm/libscriba/DataDescriptor;"
-                                       "[Lorg/scribacrm/libscriba/DataDescriptor;"
-                                       "[Lorg/scribacrm/libscriba/DataDescriptor;)V");
+                                          company_class,
+                                          "<init>",
+                                          "(JJLjava/lang/String;"
+                                          "Ljava/lang/String;Ljava/lang/String;"
+                                          "Ljava/lang/String;Ljava/lang/String;"
+                                          "Ljava/lang/String;"
+                                          "[Lorg/scribacrm/libscriba/DataDescriptor;"
+                                          "[Lorg/scribacrm/libscriba/DataDescriptor;"
+                                          "[Lorg/scribacrm/libscriba/DataDescriptor;)V");
     if (company_ctor_id == NULL)
     {
         goto exit;
     }
 
     java_company = (*env)->NewObject(env, company_class, company_ctor_id,
-                                  id, name, jur_name, address, inn, phonenum, email,
-                                  poc_list, proj_list, event_list);
+                                     (jlong)company_id._high,
+                                     (jlong)company_id._low,
+                                     name, jur_name, address, inn, phonenum, email,
+                                     poc_list, proj_list, event_list);
 
 exit:
     if (inn_string != NULL)
@@ -568,6 +622,7 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateCompany(JNIEn
     struct ScribaCompany *company = NULL;
     jfieldID fieldID = NULL;
     char *inn_string = NULL;
+    jobject company_id = NULL;
 
     if (java_company == NULL)
     {
@@ -590,12 +645,13 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateCompany(JNIEn
     // get fields of Java Company object one by one and copy them
     // to the native ScribaCompany structure
 
-    fieldID = (*env)->GetFieldID(env, company_class, "id", "J");
+    fieldID = (*env)->GetFieldID(env, company_class, "id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    company->id = (scriba_id_t)((*env)->GetLongField(env, java_company, fieldID));
+    company_id = (*env)->GetObjectField(env, java_company, fieldID);
+    UUID_to_scriba_id(env, company_id, &(company->id));
 
     fieldID = (*env)->GetFieldID(env, company_class, "name", "Ljava/lang/String;");
     if (fieldID == NULL)
@@ -661,14 +717,17 @@ exit:
 
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeCompany(JNIEnv *env,
                                                                            jclass this,
-                                                                           jlong id)
+                                                                           jobject id)
 {
-    scriba_removeCompany((scriba_id_t)id);
+    scriba_id_t company_id;
+
+    UUID_to_scriba_id(env, id, &company_id);
+    scriba_removeCompany(company_id);
 }
 
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPoc(JNIEnv *env,
                                                                        jclass this,
-                                                                       jlong id)
+                                                                       jobject id)
 {
     struct ScribaPoc *poc = NULL;
     jobject java_poc = NULL;
@@ -681,9 +740,10 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPoc(JNIEnv *e
     jstring phonenum = NULL;
     jstring email = NULL;
     jstring position = NULL;
-    jlong company_id = 0;
+    scriba_id_t poc_id;
 
-    poc = scriba_getPOC((scriba_id_t)id);
+    UUID_to_scriba_id(env, id, &poc_id);
+    poc = scriba_getPOC(poc_id);
     if (poc == NULL)
     {
         goto exit;
@@ -696,9 +756,9 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPoc(JNIEnv *e
     }
 
     poc_ctor_id = (*env)->GetMethodID(env, poc_class, "<init>",
-                                   "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;"
-                                   "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;"
-                                   "Ljava/lang/String;J)V");
+                                      "(JJLjava/lang/String;Ljava/lang/String;Ljava/lang/String;"
+                                      "Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;"
+                                      "Ljava/lang/String;JJ)V");
     if (poc_ctor_id == NULL)
     {
         goto exit;
@@ -712,12 +772,14 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPoc(JNIEnv *e
     phonenum = utf8_to_java_string(env, this, poc->phonenum);
     email = utf8_to_java_string(env, this, poc->email);
     position = utf8_to_java_string(env, this, poc->position);
-    company_id = (jlong)(poc->company_id);
 
     // create java POC object
     java_poc = (*env)->NewObject(env, poc_class, poc_ctor_id,
-                              id, firstname, secondname, lastname, mobilenum,
-                              phonenum, email, position, company_id);
+                                 poc_id._high, poc_id._low,
+                                 firstname, secondname, lastname, mobilenum,
+                                 phonenum, email, position,
+                                 (jlong)(poc->company_id._high),
+                                 (jlong)(poc->company_id._low));
 
 exit:
     if (poc != NULL)
@@ -774,9 +836,13 @@ exit:
 
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPOCByCompany(JNIEnv *env,
                                                                                      jclass this,
-                                                                                     jlong company_id)
+                                                                                     jobject company_id)
 {
-    scriba_list_t *poc_list = scriba_getPOCByCompany((scriba_id_t)company_id);
+    scriba_id_t native_company_id;
+    scriba_list_t *poc_list = NULL;
+
+    UUID_to_scriba_id(env, company_id, &native_company_id);
+    poc_list = scriba_getPOCByCompany(native_company_id);
     jobjectArray java_poc_list = scriba_list_to_data_descr_array(env, this, poc_list);
 
     scriba_list_delete(poc_list);
@@ -826,7 +892,7 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addPOC(JNIEnv *env,
                                                                     jstring phonenum,
                                                                     jstring email,
                                                                     jstring position,
-                                                                    jlong company_id)
+                                                                    jobject company_id)
 {
     char *native_firstname = java_string_to_utf8(env, this, firstname);
     char *native_secondname = java_string_to_utf8(env, this, secondname);
@@ -835,10 +901,12 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addPOC(JNIEnv *env,
     char *native_phonenum = java_string_to_utf8(env, this, phonenum);
     char *native_email = java_string_to_utf8(env, this, email);
     char *native_position = java_string_to_utf8(env, this, position);
+    scriba_id_t native_company_id;
 
+    UUID_to_scriba_id(env, company_id, &native_company_id);
     scriba_addPOC(native_firstname, native_secondname, native_lastname,
                   native_mobilenum, native_phonenum, native_email,
-                  native_position, (scriba_id_t)company_id);
+                  native_position, native_company_id);
 
     if (native_firstname != NULL)
     {
@@ -877,6 +945,8 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updatePOC(JNIEnv *e
     struct ScribaPoc *poc = NULL;
     jclass poc_class = NULL;
     jfieldID fieldID = NULL;
+    jobject poc_id = NULL;
+    jobject company_id = NULL;
 
     if (java_poc == NULL)
     {
@@ -898,12 +968,13 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updatePOC(JNIEnv *e
 
     // get fields of Java POC object one by one and copy their values to ScribaPoc structure
     
-    fieldID = (*env)->GetFieldID(env, poc_class, "id", "J");
+    fieldID = (*env)->GetFieldID(env, poc_class, "id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    poc->id = (scriba_id_t)((*env)->GetLongField(env, java_poc, fieldID));
+    poc_id = (*env)->GetObjectField(env, java_poc, fieldID);
+    UUID_to_scriba_id(env, poc_id, &(poc->id));
 
     fieldID = (*env)->GetFieldID(env, poc_class, "firstname", "Ljava/lang/String;");
     if (fieldID == NULL)
@@ -961,12 +1032,13 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updatePOC(JNIEnv *e
     poc->position = java_string_to_utf8(env, this,
                                         (jstring)((*env)->GetObjectField(env, java_poc, fieldID)));
 
-    fieldID = (*env)->GetFieldID(env, poc_class, "company_id", "J");
+    fieldID = (*env)->GetFieldID(env, poc_class, "company_id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    poc->company_id = (scriba_id_t)((*env)->GetLongField(env, java_poc, fieldID));
+    company_id = (*env)->GetObjectField(env, java_poc, fieldID);
+    UUID_to_scriba_id(env, company_id, &(poc->company_id));
 
     scriba_updatePOC(poc);
 
@@ -979,22 +1051,28 @@ exit:
 
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removePOC(JNIEnv *env,
                                                                        jclass this,
-                                                                       jlong id)
+                                                                       jobject id)
 {
-    scriba_removePOC((scriba_id_t)id);
+    scriba_id_t poc_id;
+
+    UUID_to_scriba_id(env, id, &poc_id);
+    scriba_removePOC(poc_id);
 }
 
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject(JNIEnv *env,
                                                                            jclass this,
-                                                                           jlong id)
+                                                                           jobject id)
 {
     jobject java_project = NULL;
     jclass project_class = NULL;
     jmethodID project_ctor_id = NULL;
-    struct ScribaProject *project = scriba_getProject((scriba_id_t)id);
+    struct ScribaProject *project = NULL;
     jstring java_title = NULL;
     jstring java_descr = NULL;
+    scriba_id_t project_id;
 
+    UUID_to_scriba_id(env, id, &project_id);
+    project = scriba_getProject(project_id);
     if (project == NULL)
     {
         goto exit;
@@ -1007,7 +1085,7 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject(JNIEn
     }
 
     project_ctor_id = (*env)->GetMethodID(env, project_class, "<init>",
-                                       "(JLjava/lang/String;Ljava/lang/String;JB)V");
+                                          "(JJLjava/lang/String;Ljava/lang/String;JJB)V");
     if (project_ctor_id == NULL)
     {
         goto exit;
@@ -1017,8 +1095,11 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject(JNIEn
     java_descr = utf8_to_java_string(env, this, project->descr);
 
     java_project = (*env)->NewObject(env, project_class, project_ctor_id,
-                                     id, java_title, java_descr,
-                                     (jlong)(project->company_id), (jbyte)(project->state));
+                                     (jlong)(project_id._high), (jlong)(project_id._low),
+                                     java_title, java_descr,
+                                     (jlong)(project->company_id._high),
+                                     (jlong)(project->company_id._low),
+                                     (jbyte)(project->state));
 
 exit:
     if (project != NULL)
@@ -1046,11 +1127,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getAllProje
 
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByCompany(JNIEnv *env,
                                                                                           jclass this,
-                                                                                          jlong id)
+                                                                                          jobject id)
 {
     jobjectArray java_projects = NULL;
-    scriba_list_t *projects = scriba_getProjectsByCompany((scriba_id_t)id);
+    scriba_id_t native_project_id;
+    scriba_list_t *projects = NULL;
 
+    UUID_to_scriba_id(env, id, &native_project_id);
+    projects = scriba_getProjectsByCompany(native_project_id);
     if (projects == NULL)
     {
         return NULL;
@@ -1082,13 +1166,15 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject(JNIEnv *
                                                                         jclass this,
                                                                         jstring java_title,
                                                                         jstring java_descr,
-                                                                        jlong company_id,
+                                                                        jobject company_id,
                                                                         jbyte state)
 {
     char *native_title = java_string_to_utf8(env, this, java_title);
     char *native_descr = java_string_to_utf8(env, this, java_descr);
+    scriba_id_t native_company_id;
 
-    scriba_addProject(native_title, native_descr, (scriba_id_t)company_id,
+    UUID_to_scriba_id(env, company_id, &native_company_id);
+    scriba_addProject(native_title, native_descr, native_company_id,
                       (enum ScribaProjectState)state);
 
     if (native_title != NULL)
@@ -1108,6 +1194,8 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateProject(JNIEn
     struct ScribaProject *project = NULL;
     jclass project_class = NULL;
     jfieldID fieldID = NULL;
+    jobject project_id = NULL;
+    jobject company_id = NULL;
 
     if (java_project == NULL)
     {
@@ -1128,12 +1216,13 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateProject(JNIEn
     }
 
     // get fields of Project Java object and copy their values to ScribaProject structure
-    fieldID = (*env)->GetFieldID(env, project_class, "id", "J");
+    fieldID = (*env)->GetFieldID(env, project_class, "id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    project->id = (scriba_id_t)((*env)->GetLongField(env, java_project, fieldID));
+    project_id = (*env)->GetObjectField(env, java_project, fieldID);
+    UUID_to_scriba_id(env, project_id, &(project->id));
 
     fieldID = (*env)->GetFieldID(env, project_class, "title", "Ljava/lang/String;");
     if (fieldID == NULL)
@@ -1151,12 +1240,13 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateProject(JNIEn
     project->descr = java_string_to_utf8(env, this,
                                          (jstring)((*env)->GetObjectField(env, java_project, fieldID)));
 
-    fieldID = (*env)->GetFieldID(env, project_class, "company_id", "J");
+    fieldID = (*env)->GetFieldID(env, project_class, "company_id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    project->company_id = (scriba_id_t)((*env)->GetLongField(env, java_project, fieldID));
+    company_id = (*env)->GetObjectField(env, java_project, fieldID);
+    UUID_to_scriba_id(env, company_id, &(project->company_id));
 
     fieldID = (*env)->GetFieldID(env, project_class, "state", "B");
     if (fieldID == NULL)
@@ -1176,22 +1266,28 @@ exit:
 
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeProject(JNIEnv *env,
                                                                            jclass this,
-                                                                           jlong id)
+                                                                           jobject id)
 {
-    scriba_removeProject((scriba_id_t)id);
+    scriba_id_t project_id;
+
+    UUID_to_scriba_id(env, id, &project_id);
+    scriba_removeProject(project_id);
 }
 
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEvent(JNIEnv *env,
                                                                          jclass this,
-                                                                         jlong id)
+                                                                         jobject id)
 {
     jobject java_event = NULL;
     jclass event_class = NULL;
     jmethodID event_ctor_id = NULL;
     jstring java_descr = NULL;
     jstring java_outcome = NULL;
-    struct ScribaEvent *event = scriba_getEvent((scriba_id_t)id);
+    struct ScribaEvent *event = NULL;
+    scriba_id_t event_id;
 
+    UUID_to_scriba_id(env, id, &event_id);
+    event = scriba_getEvent(event_id);
     if (event == NULL)
     {
         goto exit;
@@ -1204,7 +1300,7 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEvent(JNIEnv 
     }
 
     event_ctor_id = (*env)->GetMethodID(env, event_class, "<init>",
-                                     "(JLjava/lang/String;JJJBLjava/lang/String;JB)V");
+                                        "(JJLjava/lang/String;JJJJJJBLjava/lang/String;JB)V");
     if (event_ctor_id == NULL)
     {
         goto exit;
@@ -1214,10 +1310,16 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEvent(JNIEnv 
     java_outcome = utf8_to_java_string(env, this, event->outcome);
 
     java_event = (*env)->NewObject(env, event_class, event_ctor_id,
-                                id, java_descr, (jlong)(event->company_id),
-                                (jlong)(event->poc_id), (jlong)(event->project_id),
-                                (jbyte)(event->type), java_outcome, (jlong)(event->timestamp),
-                                (jbyte)(event->state));
+                                   (jlong)(event_id._high), (jlong)(event_id._low),
+                                   java_descr,
+                                   (jlong)(event->company_id._high),
+                                   (jlong)(event->company_id._low),
+                                   (jlong)(event->poc_id._high),
+                                   (jlong)(event->poc_id._low),
+                                   (jlong)(event->project_id._high),
+                                   (jlong)(event->project_id._low),
+                                   (jbyte)(event->type), java_outcome, (jlong)(event->timestamp),
+                                   (jbyte)(event->state));
 
 exit:
     if (event != NULL)
@@ -1240,11 +1342,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getAllEvent
 
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByCompany(JNIEnv *env,
                                                                                         jclass this,
-                                                                                        jlong id)
+                                                                                        jobject id)
 {
     jobjectArray java_events = NULL;
-    scriba_list_t *events = scriba_getEventsByCompany((scriba_id_t)id);
+    scriba_id_t company_id;
+    scriba_list_t *events = NULL;
 
+    UUID_to_scriba_id(env, id, &company_id);
+    events = scriba_getEventsByCompany(company_id);
     if (events == NULL)
     {
         return NULL;
@@ -1257,11 +1362,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsBy
 
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByPOC(JNIEnv *env,
                                                                                     jclass this,
-                                                                                    jlong id)
+                                                                                    jobject id)
 {
     jobjectArray java_events = NULL;
-    scriba_list_t *events = scriba_getEventsByPOC((scriba_id_t)id);
+    scriba_id_t poc_id;
+    scriba_list_t *events = NULL;
 
+    UUID_to_scriba_id(env, id, &poc_id);
+    events = scriba_getEventsByPOC(poc_id);
     if (events == NULL)
     {
         return NULL;
@@ -1274,11 +1382,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsBy
 
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByProject(JNIEnv *env,
                                                                                         jclass this,
-                                                                                        jlong id)
+                                                                                        jobject id)
 {
     jobjectArray java_events = NULL;
-    scriba_list_t *events = scriba_getEventsByProject((scriba_id_t)id);
+    scriba_id_t project_id;
+    scriba_list_t *events = NULL;
 
+    UUID_to_scriba_id(env, id, &project_id);
+    events = scriba_getEventsByProject(project_id);
     if (events == NULL)
     {
         return NULL;
@@ -1292,9 +1403,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsBy
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addEvent(JNIEnv *env,
                                                                       jclass this,
                                                                       jstring descr,
-                                                                      jlong company_id,
-                                                                      jlong poc_id,
-                                                                      jlong project_id,
+                                                                      jobject company_id,
+                                                                      jobject poc_id,
+                                                                      jobject project_id,
                                                                       jbyte type,
                                                                       jstring outcome,
                                                                       jlong timestamp,
@@ -1302,9 +1413,15 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addEvent(JNIEnv *en
 {
     char *native_descr = java_string_to_utf8(env, this, descr);
     char *native_outcome = java_string_to_utf8(env, this, outcome);
+    scriba_id_t native_company_id;
+    scriba_id_t native_poc_id;
+    scriba_id_t native_project_id;
 
-    scriba_addEvent(native_descr, (scriba_id_t)company_id, (scriba_id_t)poc_id,
-                    (scriba_id_t)project_id, (enum ScribaEventType)type, native_outcome,
+    UUID_to_scriba_id(env, company_id, &native_company_id);
+    UUID_to_scriba_id(env, poc_id, &native_poc_id);
+    UUID_to_scriba_id(env, project_id, &native_project_id);
+    scriba_addEvent(native_descr, native_company_id, native_poc_id,
+                    native_project_id, (enum ScribaEventType)type, native_outcome,
                     (scriba_time_t)timestamp, (enum ScribaEventState)state);
 
     if (native_descr != NULL)
@@ -1324,6 +1441,10 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateEvent(JNIEnv 
     jclass event_class = NULL;
     jfieldID fieldID = NULL;
     struct ScribaEvent *event = NULL;
+    jobject event_id = NULL;
+    jobject company_id = NULL;
+    jobject poc_id = NULL;
+    jobject project_id = NULL;
 
     if (java_event == NULL)
     {
@@ -1345,12 +1466,13 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateEvent(JNIEnv 
 
     // get fields of Event Java object and copy them to ScribaEvent structure
     
-    fieldID = (*env)->GetFieldID(env, event_class, "id", "J");
+    fieldID = (*env)->GetFieldID(env, event_class, "id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    event->id = (scriba_id_t)((*env)->GetLongField(env, java_event, fieldID));
+    event_id = (*env)->GetObjectField(env, java_event, fieldID);
+    UUID_to_scriba_id(env, event_id, &(event->id));
 
     fieldID = (*env)->GetFieldID(env, event_class, "descr", "Ljava/lang/String;");
     if (fieldID == NULL)
@@ -1360,26 +1482,29 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateEvent(JNIEnv 
     event->descr = java_string_to_utf8(env, this,
                                        (jstring)((*env)->GetObjectField(env, java_event, fieldID)));
 
-    fieldID = (*env)->GetFieldID(env, event_class, "company_id", "J");
+    fieldID = (*env)->GetFieldID(env, event_class, "company_id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    event->company_id = (scriba_id_t)((*env)->GetLongField(env, java_event, fieldID));
+    company_id = (*env)->GetObjectField(env, java_event, fieldID);
+    UUID_to_scriba_id(env, company_id, &(event->company_id));
 
-    fieldID = (*env)->GetFieldID(env, event_class, "poc_id", "J");
+    fieldID = (*env)->GetFieldID(env, event_class, "poc_id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    event->poc_id = (scriba_id_t)((*env)->GetLongField(env, java_event, fieldID));
+    poc_id = (*env)->GetObjectField(env, java_event, fieldID);
+    UUID_to_scriba_id(env, poc_id, &(event->poc_id));
 
-    fieldID = (*env)->GetFieldID(env, event_class, "project_id", "J");
+    fieldID = (*env)->GetFieldID(env, event_class, "project_id", "Ljava/util/UUID;");
     if (fieldID == NULL)
     {
         goto exit;
     }
-    event->project_id = (scriba_id_t)((*env)->GetLongField(env, java_event, fieldID));
+    project_id = (*env)->GetObjectField(env, java_event, fieldID);
+    UUID_to_scriba_id(env, project_id, &(event->project_id));
 
     fieldID = (*env)->GetFieldID(env, event_class, "type", "B");
     if (fieldID == NULL)
@@ -1421,7 +1546,10 @@ exit:
 
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeEvent(JNIEnv *env,
                                                                          jclass this,
-                                                                         jlong id)
+                                                                         jobject id)
 {
-    scriba_removeEvent((scriba_id_t)id);
+    scriba_id_t event_id;
+
+    UUID_to_scriba_id(env, id, &event_id);
+    scriba_removeEvent(event_id);
 }

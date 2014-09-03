@@ -20,13 +20,20 @@
 
 package org.scribacrm.libscriba;
 
+import java.util.UUID;
+
 public final class DataDescriptor {
 
-    public final long id;
+    public final UUID id;
     public final String descr;
 
-    public DataDescriptor(long id, String descr) {
+    public DataDescriptor(UUID id, String descr) {
         this.id = id;
+        this.descr = descr;
+    }
+
+    public DataDescriptor(long id_high, long id_low, String descr) {
+        this.id = new UUID(id_high, id_low);
         this.descr = descr;
     }
 

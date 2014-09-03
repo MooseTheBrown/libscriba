@@ -25,12 +25,13 @@ import org.junit.*;
 import static org.junit.Assert.*;
 import java.nio.file.*;
 import java.io.IOException;
+import java.util.UUID;
 
 public class POCTest {
 
     private static final String testDBLocation = "./java_test_db";
 
-    private long _company_id;
+    private UUID _company_id;
 
     @Before
     public void setUp() {
@@ -77,7 +78,7 @@ public class POCTest {
     public void testGetPoc() {
         DataDescriptor[] people = ScribaDB.getPOCByName("Kseniia", "Nikolayevna", "Sapozhnikova");
         POC poc = ScribaDB.getPoc(people[0].id);
-        assertEquals("POC id match", people[0].id, poc.id);
+        assertTrue("POC id match", people[0].id.equals(poc.id));
         assertTrue("POC firstname match", poc.firstname.equals("Kseniia"));
         assertTrue("POC secondname match", poc.secondname.equals("Nikolayevna"));
         assertTrue("POC lastname match", poc.lastname.equals("Sapozhnikova"));
@@ -85,7 +86,7 @@ public class POCTest {
         assertTrue("POC phonenum match", poc.phonenum.equals("6543210"));
         assertTrue("POC email match", poc.email.equals("ksapozhnikova@test.com"));
         assertTrue("POC position match", poc.position.equals("The boss"));
-        assertEquals("Company id match", _company_id, poc.company_id);
+        assertTrue("Company id match", _company_id.equals(poc.company_id));
     }
 
     @Test
@@ -118,7 +119,7 @@ public class POCTest {
     @Test
     public void testUpdatePOC() {
         DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail", null, "Sapozhnikov");
-        long poc_id = people[0].id;
+        UUID poc_id = people[0].id;
 
         POC poc = ScribaDB.getPoc(poc_id);
         POC updated_poc = new POC(poc_id, poc.firstname, poc.secondname, poc.lastname,
@@ -132,7 +133,7 @@ public class POCTest {
     @Test
     public void testRemovePOC() {
         DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail", null, "Sapozhnikov");
-        long poc_id = people[0].id;
+        UUID poc_id = people[0].id;
 
         ScribaDB.removePOC(poc_id);
 

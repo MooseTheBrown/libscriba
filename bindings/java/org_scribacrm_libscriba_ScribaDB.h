@@ -26,10 +26,10 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_cleanup
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getCompany
- * Signature: (J)Lorg/scribacrm/libscriba/Company;
+ * Signature: (Ljava/util/UUID;)Lorg/scribacrm/libscriba/Company;
  */
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -82,18 +82,18 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateCompany
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    removeCompany
- * Signature: (J)V
+ * Signature: (Ljava/util/UUID;)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeCompany
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getPoc
- * Signature: (J)Lorg/scribacrm/libscriba/POC;
+ * Signature: (Ljava/util/UUID;)Lorg/scribacrm/libscriba/POC;
  */
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPoc
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -114,10 +114,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPOCByNam
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getPOCByCompany
- * Signature: (J)[Lorg/scribacrm/libscriba/DataDescriptor;
+ * Signature: (Ljava/util/UUID;)[Lorg/scribacrm/libscriba/DataDescriptor;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPOCByCompany
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -138,10 +138,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPOCByEma
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    addPOC
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;J)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/UUID;)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addPOC
-  (JNIEnv *, jclass, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jlong);
+  (JNIEnv *, jclass, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -154,18 +154,18 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updatePOC
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    removePOC
- * Signature: (J)V
+ * Signature: (Ljava/util/UUID;)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removePOC
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getProject
- * Signature: (J)Lorg/scribacrm/libscriba/Project;
+ * Signature: (Ljava/util/UUID;)Lorg/scribacrm/libscriba/Project;
  */
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -178,10 +178,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getAllProje
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getProjectsByCompany
- * Signature: (J)[Lorg/scribacrm/libscriba/DataDescriptor;
+ * Signature: (Ljava/util/UUID;)[Lorg/scribacrm/libscriba/DataDescriptor;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByCompany
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -194,10 +194,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjects
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    addProject
- * Signature: (Ljava/lang/String;Ljava/lang/String;JB)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/util/UUID;B)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject
-  (JNIEnv *, jclass, jstring, jstring, jlong, jbyte);
+  (JNIEnv *, jclass, jstring, jstring, jobject, jbyte);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -210,18 +210,18 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateProject
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    removeProject
- * Signature: (J)V
+ * Signature: (Ljava/util/UUID;)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeProject
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getEvent
- * Signature: (J)Lorg/scribacrm/libscriba/Event;
+ * Signature: (Ljava/util/UUID;)Lorg/scribacrm/libscriba/Event;
  */
 JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEvent
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -234,34 +234,34 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getAllEvent
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getEventsByCompany
- * Signature: (J)[Lorg/scribacrm/libscriba/DataDescriptor;
+ * Signature: (Ljava/util/UUID;)[Lorg/scribacrm/libscriba/DataDescriptor;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByCompany
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getEventsByPOC
- * Signature: (J)[Lorg/scribacrm/libscriba/DataDescriptor;
+ * Signature: (Ljava/util/UUID;)[Lorg/scribacrm/libscriba/DataDescriptor;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByPOC
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    getEventsByProject
- * Signature: (J)[Lorg/scribacrm/libscriba/DataDescriptor;
+ * Signature: (Ljava/util/UUID;)[Lorg/scribacrm/libscriba/DataDescriptor;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByProject
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    addEvent
- * Signature: (Ljava/lang/String;JJJBLjava/lang/String;JB)V
+ * Signature: (Ljava/lang/String;Ljava/util/UUID;Ljava/util/UUID;Ljava/util/UUID;BLjava/lang/String;JB)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addEvent
-  (JNIEnv *, jclass, jstring, jlong, jlong, jlong, jbyte, jstring, jlong, jbyte);
+  (JNIEnv *, jclass, jstring, jobject, jobject, jobject, jbyte, jstring, jlong, jbyte);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
@@ -274,10 +274,10 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateEvent
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    removeEvent
- * Signature: (J)V
+ * Signature: (Ljava/util/UUID;)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeEvent
-  (JNIEnv *, jclass, jlong);
+  (JNIEnv *, jclass, jobject);
 
 #ifdef __cplusplus
 }

@@ -20,9 +20,11 @@
 
 package org.scribacrm.libscriba;
 
+import java.util.UUID;
+
 public final class Company {
 
-    public final long id;
+    public final UUID id;
     public final String name;
     public final String jur_name;
     public final String address;
@@ -34,7 +36,7 @@ public final class Company {
     public final DataDescriptor[] event_list;
 
     // constructor to be used by Java code outside of the library
-    public Company(long id, String name, String jur_name, String address,
+    public Company(UUID id, String name, String jur_name, String address,
                    String inn, String phonenum, String email) {
         this.id = id;
         this.name = name;
@@ -51,10 +53,25 @@ public final class Company {
     }
 
     // constructor to be used by library native code
-    public Company(long id, String name, String jur_name, String address,
+    public Company(UUID id, String name, String jur_name, String address,
                    String inn, String phonenum, String email, DataDescriptor[] poc_list,
                    DataDescriptor[] proj_list, DataDescriptor[] event_list) {
         this.id = id;
+        this.name = name;
+        this.jur_name = jur_name;
+        this.address = address;
+        this.inn = inn;
+        this.phonenum = phonenum;
+        this.email = email;
+        this.poc_list = poc_list;
+        this.proj_list = proj_list;
+        this.event_list = event_list;
+    }
+
+    public Company(long id_high, long id_low, String name, String jur_name, String address,
+                   String inn, String phonenum, String email, DataDescriptor[] poc_list,
+                   DataDescriptor[] proj_list, DataDescriptor[] event_list) {
+        this.id = new UUID(id_high, id_low);
         this.name = name;
         this.jur_name = jur_name;
         this.address = address;
