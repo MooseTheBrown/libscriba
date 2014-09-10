@@ -36,10 +36,10 @@ static fb::Offset<Company> serialize_company(scriba_id_t id, fb::FlatBufferBuild
 static fb::Offset<Event> serialize_event(scriba_id_t id, fb::FlatBufferBuilder &fbb);
 static fb::Offset<POC> serialize_poc(scriba_id_t id, fb::FlatBufferBuilder &fbb);
 static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuilder &fbb);
-static bool deserialize_company(Company *company, enum ScribaMergeStrategy strategy);
-static bool deserialize_event(Event *event, enum ScribaMergeStrategy strategy);
-static bool deserialize_poc(POC *poc, enum ScribaMergeStrategy strategy);
-static bool deserialize_project(Project *project, enum ScribaMergeStrategy strategy);
+static bool deserialize_company(const Company *company, enum ScribaMergeStrategy strategy);
+static bool deserialize_event(const Event *event, enum ScribaMergeStrategy strategy);
+static bool deserialize_poc(const POC *poc, enum ScribaMergeStrategy strategy);
+static bool deserialize_project(const Project *project, enum ScribaMergeStrategy strategy);
 
 // externally visible functions should use C linkage
 #ifdef __cplusplus
@@ -114,40 +114,40 @@ void *serialize(scriba_list_t *companies,
 enum ScribaMergeStatus deserialize(void *buf, unsigned long buflen,
                                    enum ScribaMergeStrategy strategy)
 {
-    Entries *entries = GetEntries(buf);
+    const Entries *entries = GetEntries(buf);
     bool conflicts = false;
 
-    fb::Vector<fb::Offset<Company>> *companies = entries->companies();
+    const fb::Vector<fb::Offset<Company>> *companies = entries->companies();
     for (fb::uoffset_t i = 0; i < companies->Length(); i++)
     {
-        bool ret = deserialize_company(companies->Get(i));
+        bool ret = deserialize_company(companies->Get(i), strategy);
         if (ret == true)
         {
             conflicts = true;
         }
     }
-    fb::Vector<fb::Offset<Event>> *events = entries->events();
+    const fb::Vector<fb::Offset<Event>> *events = entries->events();
     for (fb::uoffset_t i = 0; i < events->Length(); i++)
     {
-        bool ret = deserialize_event(events->Get(i));
+        bool ret = deserialize_event(events->Get(i), strategy);
         if (ret == true)
         {
             conflicts = true;
         }
     }
-    fb::Vector<fb::Offset<POC>> *people = entries->people();
+    const fb::Vector<fb::Offset<POC>> *people = entries->people();
     for (fb::uoffset_t i = 0; i < people->Length(); i++)
     {
-        bool ret = deserialize_poc(people->Get(i));
+        bool ret = deserialize_poc(people->Get(i), strategy);
         if (ret == true)
         {
             conflicts = true;
         }
     }
-    fb::Vector<fb::Offset<Project>> *projects = entries->projects();
+    const fb::Vector<fb::Offset<Project>> *projects = entries->projects();
     for (fb::uoffset_t i = 0; i < projects->Length(); i++)
     {
-        bool ret = deserialize_project(projects->Get(i));
+        bool ret = deserialize_project(projects->Get(i), strategy);
         if (ret == true)
         {
             conflicts = true;
@@ -292,28 +292,26 @@ static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuild
     return prjb.Finish();
 }
 
-static bool deserialize_company(Company *company, enum ScribaMergeStrategy strategy)
+static bool deserialize_company(const Company *company, enum ScribaMergeStrategy strategy)
 {
     scriba_id_t company_id;
-    bool ret = false;
 
-    company_id._high = (unsigned long long)(company->ID->high());
-    company_id._low = (unsigned long long)(company->ID->low());
+    company_id._high = (unsigned long long)(company->id()->high());
+    company_id._low = (unsigned long long)(company->id()->low());
 
     ScribaCompany *duplicate = scriba_getCompany(company_id);
     if (duplicate != NULL)
     {
         if (strategy == SCRIBA_MERGE_REMOTE_OVERRIDE)
         {
-
             ScribaCompany updated_company;
             scriba_id_copy(&(updated_company.id), &company_id);
-            updated_company.name = company->name->c_str();
-            updated_company.jur_name = company->jur_name->c_str();
-            updated_company.address = company->address->c_str();
-            updated_company.inn = scriba_inn_from_string(company->inn->c_str());
-            updated_company.phonenum = company->phonenum->c_str();
-            updated_company.email = company->email->c_str();
+            updated_company.name = (char *)(company->name()->c_str());
+            updated_company.jur_name = (char *)(company->jur_name()->c_str());
+            updated_company.address = (char *)(company->address()->c_str());
+            updated_company.inn = scriba_inn_from_string(company->inn()->c_str());
+            updated_company.phonenum = (char *)(company->phonenum()->c_str());
+            updated_company.email = (char *)(company->email()->c_str());
             scriba_updateCompany(&updated_company);
         }
 
@@ -326,27 +324,217 @@ static bool deserialize_company(Company *company, enum ScribaMergeStrategy strat
     else
     {
         // no such company in the local database, add new one
-        scriba_addCompany(company->name->c_str(),
-                          company->jur_name->c_str(),
-                          company->address->c_str(),
-                          scriba_inn_from_string(company->inn->c_str()),
-                          company->phonenum->c_str(),
-                          company->email->c_str());
+        scriba_addCompany(company->name()->c_str(),
+                          company->jur_name()->c_str(),
+                          company->address()->c_str(),
+                          scriba_inn_from_string(company->inn()->c_str()),
+                          company->phonenum()->c_str(),
+                          company->email()->c_str());
     }
 
     return false;
 }
 
-static bool deserialize_event(Event *event, enum ScribaMergeStrategy strategy)
+static bool deserialize_event(const Event *event, enum ScribaMergeStrategy strategy)
 {
+    scriba_id_t event_id;
+    scriba_id_t company_id;
+    scriba_id_t poc_id;
+    scriba_id_t project_id;
+    enum ScribaEventType event_type = EVENT_TYPE_MEETING;
+    enum ScribaEventState event_state = EVENT_STATE_SCHEDULED;
+
+    event_id._high = (unsigned long long)(event->id()->high());
+    event_id._low = (unsigned long long)(event->id()->low());
+    company_id._high = (unsigned long long)(event->company_id()->high());
+    company_id._low = (unsigned long long)(event->company_id()->low());
+    poc_id._high = (unsigned long long)(event->poc_id()->high());
+    poc_id._low = (unsigned long long)(event->poc_id()->low());
+    project_id._high = (unsigned long long)(event->project_id()->high());
+    project_id._low = (unsigned long long)(event->project_id()->low());
+    switch (event->state())
+    {
+    case EventState_COMPLETED:
+        event_state = EVENT_STATE_COMPLETED;
+        break;
+    case EventState_CANCELED:
+        event_state = EVENT_STATE_CANCELLED;
+        break;
+    default:
+        break;
+    }
+    switch (event->type())
+    {
+    case EventType_CALL:
+        event_type = EVENT_TYPE_CALL;
+        break;
+    case EventType_TASK:
+        event_type = EVENT_TYPE_TASK;
+        break;
+    default:
+        break;
+    }
+
+    ScribaEvent *duplicate = scriba_getEvent(event_id);
+    if (duplicate != NULL)
+    {
+        if (strategy == SCRIBA_MERGE_REMOTE_OVERRIDE)
+        {
+            ScribaEvent updatedEvent;
+
+            scriba_id_copy(&(updatedEvent.id), &event_id);
+            updatedEvent.descr = (char *)(event->descr()->c_str());
+            scriba_id_copy(&(updatedEvent.company_id), &company_id);
+            scriba_id_copy(&(updatedEvent.poc_id), &poc_id);
+            scriba_id_copy(&(updatedEvent.project_id), &project_id);
+            updatedEvent.type = event_type;
+            updatedEvent.outcome = (char *)(event->outcome()->c_str());
+            updatedEvent.timestamp = (scriba_time_t)(event->timestamp());
+            updatedEvent.state = event_state;
+            scriba_updateEvent(&updatedEvent);
+        }
+
+        // If merge stragegy is LOCAL_OVERRIDE, we just keep local data.
+        // Manual merge is not supported yet.
+        scriba_freeEventData(duplicate);
+        duplicate = NULL;
+    }
+    else
+    {
+        // no such event, add it
+        scriba_addEvent(event->descr()->c_str(),
+                        company_id,
+                        poc_id,
+                        project_id,
+                        event_type,
+                        event->outcome()->c_str(),
+                        (scriba_time_t)(event->timestamp()),
+                        event_state);
+    }
+
+    return false;
 }
 
-static bool deserialize_poc(POC *poc, enum ScribaMergeStrategy strategy)
+static bool deserialize_poc(const POC *poc, enum ScribaMergeStrategy strategy)
 {
+    scriba_id_t poc_id;
+    scriba_id_t company_id;
+
+    poc_id._high = (unsigned long long)(poc->id()->high());
+    poc_id._low = (unsigned long long)(poc->id()->low());
+    company_id._high = (unsigned long long)(poc->company_id()->high());
+    company_id._low = (unsigned long long)(poc->company_id()->low());
+
+    // do we have this POC locally?
+    ScribaPoc *duplicate = scriba_getPOC(poc_id);
+    if (duplicate != NULL)
+    {
+        if (strategy == SCRIBA_MERGE_REMOTE_OVERRIDE)
+        {
+            ScribaPoc updated_poc;
+
+            scriba_id_copy(&(updated_poc.id), &poc_id);
+            updated_poc.firstname = (char *)(poc->firstname()->c_str());
+            updated_poc.secondname = (char *)(poc->secondname()->c_str());
+            updated_poc.lastname = (char *)(poc->lastname()->c_str());
+            updated_poc.mobilenum = (char *)(poc->mobilenum()->c_str());
+            updated_poc.phonenum = (char *)(poc->phonenum()->c_str());
+            updated_poc.email = (char *)(poc->email()->c_str());
+            updated_poc.position = (char *)(poc->position()->c_str());
+            scriba_id_copy(&(updated_poc.company_id), &company_id);
+            scriba_updatePOC(&updated_poc);
+        }
+
+        // If merge stragegy is LOCAL_OVERRIDE, we just keep local data.
+        // Manual merge is not supported yet.
+        scriba_freePOCData(duplicate);
+        duplicate = NULL;
+    }
+    else
+    {
+        // we don't have this POC locally, add it
+        scriba_addPOC(poc->firstname()->c_str(),
+                      poc->secondname()->c_str(),
+                      poc->lastname()->c_str(),
+                      poc->mobilenum()->c_str(),
+                      poc->phonenum()->c_str(),
+                      poc->email()->c_str(),
+                      poc->position()->c_str(),
+                      company_id);
+    }
+
+    return false;
 }
 
-static bool deserialize_project(Project *project, enum ScribaMergeStrategy strategy)
+static bool deserialize_project(const Project *project, enum ScribaMergeStrategy strategy)
 {
+    scriba_id_t project_id;
+    scriba_id_t company_id;
+    enum ScribaProjectState project_state = PROJECT_STATE_INITIAL;
+
+    project_id._high = project->id()->high();
+    project_id._low = project->id()->low();
+    company_id._high = project->company_id()->high();
+    company_id._low = project->company_id()->low();
+    switch(project->state())
+    {
+    case ProjectState_CLIENT_INFORMED:
+        project_state = PROJECT_STATE_CLIENT_INFORMED;
+        break;
+    case ProjectState_CLIENT_RESPONSE:
+        project_state = PROJECT_STATE_CLIENT_RESPONSE;
+        break;
+    case ProjectState_OFFER:
+        project_state = PROJECT_STATE_OFFER;
+        break;
+    case ProjectState_REJECTED:
+        project_state = PROJECT_STATE_REJECTED;
+        break;
+    case ProjectState_CONTRACT_SIGNED:
+        project_state = PROJECT_STATE_CONTRACT_SIGNED;
+        break;
+    case ProjectState_EXECUTION:
+        project_state = PROJECT_STATE_EXECUTION;
+        break;
+    case ProjectState_PAYMENT:
+        project_state = PROJECT_STATE_PAYMENT;
+        break;
+    default:
+        break;
+    }
+
+    // do we have such project?
+    ScribaProject *duplicate = scriba_getProject(project_id);
+    if (duplicate != NULL)
+    {
+        if (strategy == SCRIBA_MERGE_REMOTE_OVERRIDE)
+        {
+            ScribaProject updated_project;
+
+            scriba_id_copy(&(updated_project.id), &project_id);
+            updated_project.title = (char *)(project->title()->c_str());
+            updated_project.descr = (char *)(project->descr()->c_str());
+            scriba_id_copy(&(updated_project.company_id), &company_id);
+            updated_project.state = project_state;
+
+            scriba_updateProject(&updated_project);
+        }
+
+        // If merge stragegy is LOCAL_OVERRIDE, we just keep local data.
+        // Manual merge is not supported yet.
+        scriba_freeProjectData(duplicate);
+        duplicate = NULL;
+    }
+    else
+    {
+        // we don't have this project locally, add it
+        scriba_addProject(project->title()->c_str(),
+                          project->descr()->c_str(),
+                          company_id,
+                          project_state);
+    }
+
+    return false;
 }
 
 } // namespace scriba
