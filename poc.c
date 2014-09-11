@@ -74,7 +74,20 @@ void scriba_addPOC(const char *firstname, const char *secondname, const char *la
             const char *mobilenum, const char *phonenum, const char *email,
             const char *position, scriba_id_t company_id)
 {
-    fTbl->addPOC(firstname, secondname, lastname,
+    scriba_id_t id;
+
+    scriba_id_create(&id);
+    fTbl->addPOC(id, firstname, secondname, lastname,
+                 mobilenum, phonenum, email,
+                 position, company_id);
+}
+
+// add person with given ID to the database
+void scriba_addPOCWithID(scriba_id_t id, const char *firstname, const char *secondname,
+                         const char *lastname, const char *mobilenum, const char *phonenum,
+                         const char *email, const char *position, scriba_id_t company_id)
+{
+    fTbl->addPOC(id, firstname, secondname, lastname,
                  mobilenum, phonenum, email,
                  position, company_id);
 }

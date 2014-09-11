@@ -36,8 +36,9 @@ static scriba_list_t *getAllCompanies();
 static scriba_list_t *getCompaniesByName(const char *name);
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name);
 static scriba_list_t *getCompaniesByAddress(const char *address);
-static void addCompany(const char *name, const char *jur_name, const char *address,
-                       scriba_inn_t inn, const char *phonenum, const char *email);
+static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
+                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *email);
 static void updateCompany(const struct ScribaCompany *company);
 static void removeCompany(scriba_id_t id);
 static void free_company_data(struct ScribaCompany *company);
@@ -47,7 +48,7 @@ static scriba_list_t *getAllEvents();
 static scriba_list_t *getEventsByCompany(scriba_id_t id);
 static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
-static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
+static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state);
 static void updateEvent(const struct ScribaEvent *event);
@@ -63,9 +64,9 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id);
 static scriba_list_t *getPOCByPosition(const char *position);
 static scriba_list_t *getPOCByPhoneNum(const char *phonenum);
 static scriba_list_t *getPOCByEmail(const char *email);
-static void addPOC(const char *firstname, const char *secondname, const char *lastname,
-                   const char *mobilenum, const char *phonenum, const char *email,
-                   const char *position, scriba_id_t company_id);
+static void addPOC(scriba_id_t id, const char *firstname, const char *secondname,
+                   const char *lastname, const char *mobilenum, const char *phonenum,
+                   const char *email, const char *position, scriba_id_t company_id);
 static void updatePOC(const struct ScribaPoc *poc);
 static void removePOC(scriba_id_t id);
 static void free_poc_data(struct ScribaPoc *poc);
@@ -74,8 +75,8 @@ static struct ScribaProject *getProject(scriba_id_t id);
 static scriba_list_t *getAllProjects();
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
-static void addProject(const char *title, const char *descr, scriba_id_t company_id,
-                       enum ScribaProjectState state);
+static void addProject(scriba_id_t id, const char *title, const char *descr,
+                       scriba_id_t company_id, enum ScribaProjectState state);
 static void updateProject(const struct ScribaProject *project);
 static void removeProject(scriba_id_t id);
 static void free_project_data(struct ScribaProject *project);
@@ -339,15 +340,16 @@ static scriba_list_t *getCompaniesByAddress(const char *address)
     return list;
 }
 
-static void addCompany(const char *name, const char *jur_name, const char *address,
-                       scriba_inn_t inn, const char *phonenum, const char *email)
+static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
+                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *email)
 {
     struct ScribaCompany *new_company = (struct ScribaCompany *)malloc(sizeof (struct ScribaCompany));
     int len = 0;
 
     memset((void *)new_company, 0, sizeof (struct ScribaCompany));
 
-    scriba_id_create(&(new_company->id));
+    scriba_id_copy(&(new_company->id), &id);
     if ((len = strlen(name)) > 0)
     {
         new_company->name = (char *)malloc(len + 1);
@@ -546,7 +548,7 @@ static scriba_list_t *getEventsByProject(scriba_id_t id)
     return list;
 }
 
-static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
+static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state)
 {
@@ -555,7 +557,7 @@ static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_
 
     memset(new_event, 0, sizeof (struct ScribaEvent));
 
-    scriba_id_create(&(new_event->id));
+    scriba_id_copy(&(new_event->id), &id);
     if ((len = strlen(descr)) > 0)
     {
         new_event->descr = (char *)malloc(len + 1);
@@ -778,16 +780,16 @@ static scriba_list_t *getPOCByEmail(const char *email)
     return list;
 }
 
-static void addPOC(const char *firstname, const char *secondname, const char *lastname,
-                   const char *mobilenum, const char *phonenum, const char *email,
-                   const char *position, scriba_id_t company_id)
+static void addPOC(scriba_id_t id, const char *firstname, const char *secondname,
+                   const char *lastname, const char *mobilenum, const char *phonenum,
+                   const char *email, const char *position, scriba_id_t company_id)
 {
     struct ScribaPoc *new_poc = (struct ScribaPoc *)malloc(sizeof (struct ScribaPoc));
     int len = 0;
 
     memset(new_poc, 0, sizeof (struct ScribaPoc));
 
-    scriba_id_create(&(new_poc->id));
+    scriba_id_copy(&(new_poc->id), &id);
     if ((len = strlen(firstname)) > 0)
     {
         new_poc->firstname = (char *)malloc(len + 1);
@@ -986,13 +988,13 @@ static scriba_list_t *getProjectsByState(enum ScribaProjectState state)
     return list;
 }
 
-static void addProject(const char *title, const char *descr, scriba_id_t company_id,
-                       enum ScribaProjectState state)
+static void addProject(scriba_id_t id, const char *title, const char *descr,
+                       scriba_id_t company_id, enum ScribaProjectState state)
 {
     struct ScribaProject *new_project = (struct ScribaProject *)malloc(sizeof (struct ScribaProject));
     int len = 0;
 
-    scriba_id_create(&(new_project->id));
+    scriba_id_copy(&(new_project->id), &id);
     if ((len = strlen(title)) != 0)
     {
         new_project->title = (char *)malloc(len + 1);

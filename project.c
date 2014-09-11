@@ -53,7 +53,17 @@ scriba_list_t *scriba_getProjectsByState(enum ScribaProjectState state)
 void scriba_addProject(const char *title, const char *descr, scriba_id_t company_id,
                        enum ScribaProjectState state)
 {
-    fTbl->addProject(title, descr, company_id, state);
+    scriba_id_t id;
+
+    scriba_id_create(&id);
+    fTbl->addProject(id, title, descr, company_id, state);
+}
+
+// add project with given ID to the database
+void scriba_addProjectWithID(scriba_id_t id, const char *title, const char *descr,
+                             scriba_id_t company_id, enum ScribaProjectState state)
+{
+    fTbl->addProject(id, title, descr, company_id, state);
 }
 
 // update project info

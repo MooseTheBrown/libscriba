@@ -23,6 +23,11 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // Person Of Contact data structure
 struct ScribaPoc
 {
@@ -57,6 +62,10 @@ scriba_list_t *scriba_getPOCByEmail(const char *email);
 void scriba_addPOC(const char *firstname, const char *secondname, const char *lastname,
             const char *mobilenum, const char *phonenum, const char *email,
             const char *position, scriba_id_t company_id);
+// add person with given ID to the database
+void scriba_addPOCWithID(scriba_id_t id, const char *firstname, const char *secondname,
+                         const char *lastname, const char *mobilenum, const char *phonenum,
+                         const char *email, const char *position, scriba_id_t company_id);
 // update POC info
 void scriba_updatePOC(const struct ScribaPoc *poc);
 // remove POC from the database
@@ -65,5 +74,9 @@ void scriba_removePOC(scriba_id_t id);
 struct ScribaPoc *scriba_copyPOC(const struct ScribaPoc *poc);
 // free memory occupied by POC data structure
 void scriba_freePOCData(struct ScribaPoc *poc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SCRIBA_POC_H

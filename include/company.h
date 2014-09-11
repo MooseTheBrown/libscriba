@@ -23,6 +23,11 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // company data structure
 struct ScribaCompany
 {
@@ -51,6 +56,10 @@ scriba_list_t *scriba_getCompaniesByAddress(const char *address);
 // add new company to the database
 void scriba_addCompany(const char *name, const char *jur_name, const char *address,
                        scriba_inn_t inn, const char *phonenum, const char *email);
+// add company with given id to the database
+void scriba_addCompanyWithID(scriba_id_t id, const char *name, const char *jur_name,
+                             const char *address, scriba_inn_t inn, const char *phonenum,
+                             const char *email);
 // update company info
 void scriba_updateCompany(const struct ScribaCompany *company);
 // remove company info from the database
@@ -60,5 +69,8 @@ struct ScribaCompany *scriba_copyCompany(const struct ScribaCompany *company);
 // free memory occupied by company data structure
 void scriba_freeCompanyData(struct ScribaCompany *company);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SCRIBA_COMPANY_H

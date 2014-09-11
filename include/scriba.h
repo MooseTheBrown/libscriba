@@ -21,6 +21,11 @@
 #ifndef SCRIBA_SCRIBA_H
 #define SCRIBA_SCRIBA_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // library initialization return codes
 #define SCRIBA_INIT_SUCCESS             0
 #define SCRIBA_INIT_INVALID_ARG         1
@@ -63,5 +68,9 @@ struct ScribaDB
 int scriba_init(struct ScribaDB *db, struct ScribaDBParamList *pl);
 // library clean up, no further use is possible until scriba_init() is called again
 void scriba_cleanup();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SCRIBA_SCRIBA_H

@@ -667,3 +667,53 @@ void test_event()
     scriba_freeEventData(event2);
     scriba_freeEventData(event3);
 }
+
+void test_create_with_id()
+{
+    // create company with given ID
+    scriba_id_t company_id;
+
+    scriba_id_create(&company_id);
+    scriba_addCompanyWithID(company_id, "TestCompany", "TestCompany LLC", "SomeAddress",
+                            scriba_inn_from_string("0123456789"), "333-22-11",
+                            "testcompany@test.com");
+    struct ScribaCompany *company = scriba_getCompany(company_id);
+    CU_ASSERT_PTR_NOT_NULL(company);
+    CU_ASSERT(scriba_id_compare(&company_id, &(company->id)));
+    CU_ASSERT_STRING_EQUAL(company->name, "TestCompany");
+
+    scriba_freeCompanyData(company);
+
+    // create POC with given ID
+    scriba_id_t poc_id;
+    scriba_id_create(&poc_id);
+    scriba_addPOCWithID(poc_id, "Moose", "Moosevich", "Moose", "4567896312", "1112233",
+                        "moose@test.com", "regular moose", company_id);
+    struct ScribaPoc *poc = scriba_getPOC(poc_id);
+    CU_ASSERT_PTR_NOT_NULL(poc);
+    CU_ASSERT(scriba_id_compare(&poc_id, &(poc->id)));
+    CU_ASSERT_STRING_EQUAL(poc->position, "regular moose");
+    scriba_freePOCData(poc);
+
+    // create project with given ID
+    scriba_id_t project_id;
+    scriba_id_create(&project_id);
+    scriba_addProjectWithID(project_id, "TestProject", "test project", company_id,
+                            PROJECT_STATE_OFFER);
+    struct ScribaProject *project = scriba_getProject(project_id);
+    CU_ASSERT_PTR_NOT_NULL(project);
+    CU_ASSERT(scriba_id_compare(&project_id, &(project->id)));
+    CU_ASSERT_EQUAL(project->state, PROJECT_STATE_OFFER);
+    scriba_freeProjectData(project);
+
+    // create event with given ID
+    scriba_id_t event_id;
+    scriba_id_create(&event_id);
+    scriba_addEventWithID(event_id, "Test event", company_id, poc_id, project_id,
+                          EVENT_TYPE_CALL, "missed", (scriba_time_t)0, EVENT_STATE_CANCELLED);
+    struct ScribaEvent *event = scriba_getEvent(event_id);
+    CU_ASSERT_PTR_NOT_NULL(event);
+    CU_ASSERT(scriba_id_compare(&event_id, &(event->id)));
+    CU_ASSERT_EQUAL(event->type, EVENT_TYPE_CALL);
+    scriba_freeEventData(event);
+}

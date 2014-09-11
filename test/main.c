@@ -49,6 +49,7 @@ int main()
     CU_add_test(frontend_test_suite, "Frontend POC test", test_poc);
     CU_add_test(frontend_test_suite, "Frontend project test", test_project);
     CU_add_test(frontend_test_suite, "Frontend event test", test_event);
+    CU_add_test(frontend_test_suite, "Frontend create with ID test", test_create_with_id);
 
     /* SQLite backend test suite */
     sqlite_backend_test_suite = CU_add_suite(SQLITE_BACKEND_TEST_NAME,
@@ -64,6 +65,9 @@ int main()
     CU_add_test(sqlite_backend_test_suite, "SQLite backend POC test", test_poc);
     CU_add_test(sqlite_backend_test_suite, "SQLite backend project test", test_project);
     CU_add_test(sqlite_backend_test_suite, "SQLite backend event test", test_event);
+    CU_add_test(sqlite_backend_test_suite,
+                "SQLite backend create with ID test",
+                test_create_with_id);
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();

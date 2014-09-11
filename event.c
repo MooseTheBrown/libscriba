@@ -60,7 +60,19 @@ void scriba_addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state)
 {
-    fTbl->addEvent(descr, company_id, poc_id, project_id, type, outcome, timestamp, state);
+    scriba_id_t id;
+
+    scriba_id_create(&id);
+    fTbl->addEvent(id, descr, company_id, poc_id, project_id, type, outcome, timestamp, state);
+}
+
+// add event with given ID to the database
+void scriba_addEventWithID(scriba_id_t id, const char *descr, scriba_id_t company_id,
+                           scriba_id_t poc_id, scriba_id_t project_id,
+                           enum ScribaEventType type, const char *outcome,
+                           scriba_time_t timestamp, enum ScribaEventState state)
+{
+    fTbl->addEvent(id, descr, company_id, poc_id, project_id, type, outcome, timestamp, state);
 }
 
 // update event info

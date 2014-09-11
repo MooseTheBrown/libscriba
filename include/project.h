@@ -23,6 +23,11 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // project states
 enum ScribaProjectState
 {
@@ -57,6 +62,9 @@ scriba_list_t *scriba_getProjectsByState(enum ScribaProjectState state);
 // add project to the database
 void scriba_addProject(const char *title, const char *descr, scriba_id_t company_id,
                        enum ScribaProjectState state);
+// add project with given ID to the database
+void scriba_addProjectWithID(scriba_id_t id, const char *title, const char *descr,
+                             scriba_id_t company_id, enum ScribaProjectState state);
 // update project info
 void scriba_updateProject(const struct ScribaProject *project);
 // remove project from the database
@@ -65,5 +73,9 @@ void scriba_removeProject(scriba_id_t id);
 struct ScribaProject *scriba_copyProject(const struct ScribaProject *project);
 // free memory occupied by project data structure
 void scriba_freeProjectData(struct ScribaProject *project);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SCRIBA_PROJECT_H

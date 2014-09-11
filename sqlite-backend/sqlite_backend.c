@@ -124,8 +124,9 @@ static scriba_list_t *getAllCompanies();
 static scriba_list_t *getCompaniesByName(const char *name);
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name);
 static scriba_list_t *getCompaniesByAddress(const char *address);
-static void addCompany(const char *name, const char *jur_name, const char *address,
-                       scriba_inn_t inn, const char *phonenum, const char *email);
+static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
+                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *email);
 static void updateCompany(const struct ScribaCompany *company);
 static void removeCompany(scriba_id_t id);
 
@@ -145,7 +146,7 @@ static scriba_list_t *getAllEvents();
 static scriba_list_t *getEventsByCompany(scriba_id_t id);
 static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
-static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
+static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state);
 static void updateEvent(const struct ScribaEvent *event);
@@ -176,9 +177,9 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id);
 static scriba_list_t *getPOCByPosition(const char *position);
 static scriba_list_t *getPOCByPhoneNum(const char *phonenum);
 static scriba_list_t *getPOCByEmail(const char *email);
-static void addPOC(const char *firstname, const char *secondname, const char *lastname,
-                   const char *mobilenum, const char *phonenum, const char *email,
-                   const char *position, scriba_id_t company_id);
+static void addPOC(scriba_id_t id, const char *firstname, const char *secondname,
+                   const char *lastname, const char *mobilenum, const char *phonenum,
+                   const char *email, const char *position, scriba_id_t company_id);
 static void updatePOC(const struct ScribaPoc *poc);
 static void removePOC(scriba_id_t id);
 
@@ -194,8 +195,8 @@ static struct ScribaProject *getProject(scriba_id_t id);
 static scriba_list_t *getAllProjects();
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
-static void addProject(const char *title, const char *descr, scriba_id_t company_id,
-                       enum ScribaProjectState state);
+static void addProject(scriba_id_t id, const char *title, const char *descr,
+                       scriba_id_t company_id, enum ScribaProjectState state);
 static void updateProject(const struct ScribaProject *project);
 static void removeProject(scriba_id_t id);
 
@@ -620,14 +621,14 @@ static scriba_list_t *getCompaniesByAddress(const char *address)
     return companySearch("SELECT id, name FROM Companies WHERE address=?", address);
 }
 
-static void addCompany(const char *name, const char *jur_name, const char *address,
-                       scriba_inn_t inn, const char *phonenum, const char *email)
+static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
+                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *email)
 {
     sqlite3_stmt *stmt = NULL;
     char query[] = "INSERT INTO Companies(id, name, jur_name, address, inn, phonenum, email) "
                    "VALUES(?,?,?,?,?,?,?)";
     char *inn_str = NULL;
-    scriba_id_t id;
     void *id_blob = NULL;
 
     if (data == NULL)
@@ -635,8 +636,6 @@ static void addCompany(const char *name, const char *jur_name, const char *addre
         goto exit;
     }
 
-    // generate new company ID
-    scriba_id_create(&id);
     id_blob = scriba_id_to_blob(&id);
 
     if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
@@ -1127,14 +1126,13 @@ static scriba_list_t *getEventsByProject(scriba_id_t id)
     return eventSearch("SELECT id,descr FROM Events WHERE project_id=?", id);
 }
 
-static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
+static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state)
 {
     char query[] = "INSERT INTO Events (id,descr,company_id,poc_id,project_id,type,outcome, timestamp, state)"
                    "VALUES (?,?,?,?,?,?,?,?,?)";
     sqlite3_stmt *stmt = NULL;
-    scriba_id_t id;
     void *id_blob = NULL;
     void *company_id_blob = NULL;
     void *poc_id_blob = NULL;
@@ -1145,8 +1143,6 @@ static void addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_
         goto exit;
     }
 
-    // create new id
-    scriba_id_create(&id);
     id_blob = scriba_id_to_blob(&id);
 
     // prepare query
@@ -1925,14 +1921,13 @@ static scriba_list_t *getPOCByEmail(const char *email)
                           email);
 }
 
-static void addPOC(const char *firstname, const char *secondname, const char *lastname,
-                   const char *mobilenum, const char *phonenum, const char *email,
-                   const char *position, scriba_id_t company_id)
+static void addPOC(scriba_id_t id, const char *firstname, const char *secondname,
+                   const char *lastname, const char *mobilenum, const char *phonenum,
+                   const char *email, const char *position, scriba_id_t company_id)
 {
     sqlite3_stmt *stmt = NULL;
     char query[] = "INSERT INTO People(id, firstname, secondname, lastname, mobilenum, phonenum,"
                    "email,position,company_id) VALUES(?,?,?,?,?,?,?,?,?)";
-    scriba_id_t id;
     void *id_blob = NULL;
     void *company_id_blob = NULL;
 
@@ -1941,8 +1936,6 @@ static void addPOC(const char *firstname, const char *secondname, const char *la
         goto exit;
     }
 
-    // create new scriba id
-    scriba_id_create(&id);
     id_blob = scriba_id_to_blob(&id);
 
     // prepare query
@@ -2432,13 +2425,12 @@ error:
     return (scriba_list_init());
 }
 
-static void addProject(const char *title, const char *descr, scriba_id_t company_id,
-                       enum ScribaProjectState state)
+static void addProject(scriba_id_t id, const char *title, const char *descr,
+                       scriba_id_t company_id, enum ScribaProjectState state)
 {
     char query[] = "INSERT INTO Projects(id,title,descr,company_id,state) "
                    "VALUES(?,?,?,?,?)";
     sqlite3_stmt *stmt = NULL;
-    scriba_id_t id;
     void *id_blob = NULL;
     void *company_id_blob = NULL;
 
@@ -2447,8 +2439,6 @@ static void addProject(const char *title, const char *descr, scriba_id_t company
         goto exit;
     }
 
-    // create new scriba id
-    scriba_id_create(&id);
     id_blob = scriba_id_to_blob(&id);
 
     // prepare query

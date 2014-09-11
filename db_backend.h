@@ -36,8 +36,9 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getCompaniesByName)(const char *);
     scriba_list_t* (*getCompaniesByJurName)(const char *);
     scriba_list_t* (*getCompaniesByAddress)(const char *);
-    void (*addCompany)(const char *, const char *, const char *,
-                       scriba_inn_t, const char *, const char *);
+    void (*addCompany)(scriba_id_t, const char *, const char *,
+                       const char *, scriba_inn_t, const char *,
+                       const char *);
     void (*updateCompany)(const struct ScribaCompany *);
     void (*removeCompany)(scriba_id_t);
 
@@ -49,7 +50,7 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getPOCByPosition)(const char *);
     scriba_list_t* (*getPOCByPhoneNum)(const char *);
     scriba_list_t* (*getPOCByEmail)(const char *);
-    void (*addPOC)(const char *, const char *, const char *,
+    void (*addPOC)(scriba_id_t, const char *, const char *, const char *,
                    const char *, const char *, const char *,
                    const char *, scriba_id_t);
     void (*updatePOC)(const struct ScribaPoc *);
@@ -60,7 +61,7 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getAllProjects)(void);
     scriba_list_t* (*getProjectsByCompany)(scriba_id_t);
     scriba_list_t* (*getProjectsByState)(enum ScribaProjectState);
-    void (*addProject)(const char *, const char *, scriba_id_t,
+    void (*addProject)(scriba_id_t, const char *, const char *, scriba_id_t,
                        enum ScribaProjectState);
     void (*updateProject)(const struct ScribaProject *);
     void (*removeProject)(scriba_id_t);
@@ -71,7 +72,7 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getEventsByCompany)(scriba_id_t);
     scriba_list_t* (*getEventsByPOC)(scriba_id_t);
     scriba_list_t* (*getEventsByProject)(scriba_id_t);
-    void (*addEvent)(const char *, scriba_id_t, scriba_id_t,
+    void (*addEvent)(scriba_id_t, const char *, scriba_id_t, scriba_id_t,
                      scriba_id_t, enum ScribaEventType, const char *,
                      scriba_time_t, enum ScribaEventState);
     void (*updateEvent)(const struct ScribaEvent *);

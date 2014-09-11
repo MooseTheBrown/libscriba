@@ -21,6 +21,11 @@
 #ifndef SCRIBA_TYPES_H
 #define SCRIBA_TYPES_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #define INN_DIGITS              10      // number of digits in INN
 #define SCRIBA_ID_BLOB_SIZE     16      // size of scriba id binary blob in bytes
 
@@ -96,5 +101,9 @@ int scriba_list_is_empty(scriba_list_t *list);
 
 // timestamp in seconds since Epoch
 typedef long long scriba_time_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SCRIBA_TYPES_H

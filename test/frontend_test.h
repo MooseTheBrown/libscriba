@@ -29,5 +29,6 @@ void test_company();
 void test_poc();
 void test_project();
 void test_event();
+void test_create_with_id();
 
 #endif // SCRIBA_FRONTEND_TEST_H

@@ -23,6 +23,11 @@
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // event types
 enum ScribaEventType
 {
@@ -67,6 +72,11 @@ scriba_list_t *scriba_getEventsByProject(scriba_id_t id);
 void scriba_addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state);
+// add event with given ID to the database
+void scriba_addEventWithID(scriba_id_t id, const char *descr, scriba_id_t company_id,
+                           scriba_id_t poc_id, scriba_id_t project_id,
+                           enum ScribaEventType type, const char *outcome,
+                           scriba_time_t timestamp, enum ScribaEventState state);
 // update event info
 void scriba_updateEvent(const struct ScribaEvent *event);
 // delete event info from the database
@@ -75,5 +85,9 @@ void scriba_removeEvent(scriba_id_t id);
 struct ScribaEvent *scriba_copyEvent(const struct ScribaEvent *event);
 // free memory occupied by event data structure
 void scriba_freeEventData(struct ScribaEvent *event);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SCRIBA_EVENT_H

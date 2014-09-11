@@ -59,7 +59,18 @@ scriba_list_t *scriba_getCompaniesByAddress(const char *address)
 void scriba_addCompany(const char *name, const char *jur_name, const char *address,
                        scriba_inn_t inn, const char *phonenum, const char *email)
 {
-    fTbl->addCompany(name, jur_name, address, inn, phonenum, email);
+    scriba_id_t company_id;
+
+    scriba_id_create(&company_id);
+    fTbl->addCompany(company_id, name, jur_name, address, inn, phonenum, email);
+}
+
+// add company with given id to the database
+void scriba_addCompanyWithID(scriba_id_t id, const char *name, const char *jur_name,
+                             const char *address, scriba_inn_t inn, const char *phonenum,
+                             const char *email)
+{
+    fTbl->addCompany(id, name, jur_name, address, inn, phonenum, email);
 }
 
 // update company info

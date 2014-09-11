@@ -324,12 +324,13 @@ static bool deserialize_company(const Company *company, enum ScribaMergeStrategy
     else
     {
         // no such company in the local database, add new one
-        scriba_addCompany(company->name()->c_str(),
-                          company->jur_name()->c_str(),
-                          company->address()->c_str(),
-                          scriba_inn_from_string(company->inn()->c_str()),
-                          company->phonenum()->c_str(),
-                          company->email()->c_str());
+        scriba_addCompanyWithID(company_id,
+                                company->name()->c_str(),
+                                company->jur_name()->c_str(),
+                                company->address()->c_str(),
+                                scriba_inn_from_string(company->inn()->c_str()),
+                                company->phonenum()->c_str(),
+                                company->email()->c_str());
     }
 
     return false;
@@ -402,14 +403,15 @@ static bool deserialize_event(const Event *event, enum ScribaMergeStrategy strat
     else
     {
         // no such event, add it
-        scriba_addEvent(event->descr()->c_str(),
-                        company_id,
-                        poc_id,
-                        project_id,
-                        event_type,
-                        event->outcome()->c_str(),
-                        (scriba_time_t)(event->timestamp()),
-                        event_state);
+        scriba_addEventWithID(event_id,
+                              event->descr()->c_str(),
+                              company_id,
+                              poc_id,
+                              project_id,
+                              event_type,
+                              event->outcome()->c_str(),
+                              (scriba_time_t)(event->timestamp()),
+                              event_state);
     }
 
     return false;
@@ -453,14 +455,15 @@ static bool deserialize_poc(const POC *poc, enum ScribaMergeStrategy strategy)
     else
     {
         // we don't have this POC locally, add it
-        scriba_addPOC(poc->firstname()->c_str(),
-                      poc->secondname()->c_str(),
-                      poc->lastname()->c_str(),
-                      poc->mobilenum()->c_str(),
-                      poc->phonenum()->c_str(),
-                      poc->email()->c_str(),
-                      poc->position()->c_str(),
-                      company_id);
+        scriba_addPOCWithID(poc_id,
+                            poc->firstname()->c_str(),
+                            poc->secondname()->c_str(),
+                            poc->lastname()->c_str(),
+                            poc->mobilenum()->c_str(),
+                            poc->phonenum()->c_str(),
+                            poc->email()->c_str(),
+                            poc->position()->c_str(),
+                            company_id);
     }
 
     return false;
@@ -528,10 +531,11 @@ static bool deserialize_project(const Project *project, enum ScribaMergeStrategy
     else
     {
         // we don't have this project locally, add it
-        scriba_addProject(project->title()->c_str(),
-                          project->descr()->c_str(),
-                          company_id,
-                          project_state);
+        scriba_addProjectWithID(project_id,
+                                project->title()->c_str(),
+                                project->descr()->c_str(),
+                                company_id,
+                                project_state);
     }
 
     return false;
