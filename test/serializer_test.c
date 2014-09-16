@@ -100,6 +100,11 @@ void test_serializer()
     unsigned long buflen = 0;
     buf = scriba_serialize(companies, events, people, projects, &buflen);
 
+    scriba_list_delete(companies);
+    scriba_list_delete(people);
+    scriba_list_delete(projects);
+    scriba_list_delete(events);
+
     // delete all local data
     clean_local_db();
 
@@ -108,6 +113,7 @@ void test_serializer()
 
     // verify it
     verify_test_data();
+    free(buf);
 }
 
 // populate local DB with test data

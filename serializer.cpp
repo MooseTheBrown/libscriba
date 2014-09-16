@@ -101,12 +101,15 @@ void *scriba_serialize(scriba_list_t *companies,
     // finalize the buffer
     fbb.Finish(root_offset);
 
+    // copy it (the original buffer will die with FlatBufferBuilder object)
+    void *buf = malloc((size_t)(fbb.GetSize()));
+    memcpy(buf, (const void *)fbb.GetBufferPointer(), fbb.GetSize());
+
     if (buflen != NULL)
     {
         *buflen = fbb.GetSize();
     }
-
-    return fbb.GetBufferPointer();
+    return buf;
 }
 
 // read entry data from the given buffer and store it in the local database
@@ -118,39 +121,54 @@ enum ScribaMergeStatus scriba_deserialize(void *buf, unsigned long buflen,
     bool conflicts = false;
 
     const fb::Vector<fb::Offset<Company>> *companies = entries->companies();
-    for (fb::uoffset_t i = 0; i < companies->Length(); i++)
+    if (companies != nullptr)
     {
-        bool ret = deserialize_company(companies->Get(i), strategy);
-        if (ret == true)
+        for (fb::uoffset_t i = 0; i < companies->Length(); i++)
         {
-            conflicts = true;
+            bool ret = deserialize_company(companies->Get(i), strategy);
+            if (ret == true)
+            {
+                conflicts = true;
+            }
         }
     }
+
     const fb::Vector<fb::Offset<Event>> *events = entries->events();
-    for (fb::uoffset_t i = 0; i < events->Length(); i++)
+    if (events != nullptr)
     {
-        bool ret = deserialize_event(events->Get(i), strategy);
-        if (ret == true)
+        for (fb::uoffset_t i = 0; i < events->Length(); i++)
         {
-            conflicts = true;
+            bool ret = deserialize_event(events->Get(i), strategy);
+            if (ret == true)
+            {
+                conflicts = true;
+            }
         }
     }
+
     const fb::Vector<fb::Offset<POC>> *people = entries->people();
-    for (fb::uoffset_t i = 0; i < people->Length(); i++)
+    if (people != nullptr)
     {
-        bool ret = deserialize_poc(people->Get(i), strategy);
-        if (ret == true)
+        for (fb::uoffset_t i = 0; i < people->Length(); i++)
         {
-            conflicts = true;
+            bool ret = deserialize_poc(people->Get(i), strategy);
+            if (ret == true)
+            {
+                conflicts = true;
+            }
         }
     }
+
     const fb::Vector<fb::Offset<Project>> *projects = entries->projects();
-    for (fb::uoffset_t i = 0; i < projects->Length(); i++)
+    if (projects != nullptr)
     {
-        bool ret = deserialize_project(projects->Get(i), strategy);
-        if (ret == true)
+        for (fb::uoffset_t i = 0; i < projects->Length(); i++)
         {
-            conflicts = true;
+            bool ret = deserialize_project(projects->Get(i), strategy);
+            if (ret == true)
+            {
+                conflicts = true;
+            }
         }
     }
 
@@ -166,36 +184,44 @@ enum ScribaMergeStatus scriba_deserialize(void *buf, unsigned long buflen,
 static fb::Offset<Company> serialize_company(scriba_id_t id, fb::FlatBufferBuilder &fbb)
 {
     ScribaCompany *company = scriba_getCompany(id);
+    auto company_name = fbb.CreateString(company->name);
+    auto company_jur_name = fbb.CreateString(company->jur_name);
+    auto company_address = fbb.CreateString(company->address);
+    char *inn = scriba_inn_to_string(&(company->inn));
+    auto company_inn = fbb.CreateString(inn);
+    auto company_phonenum = fbb.CreateString(company->phonenum);
+    auto company_email = fbb.CreateString(company->email);
+    ID bufID(id._high, id._low);
 
     CompanyBuilder cb(fbb);
-    ID bufID(id._high, id._low);
     cb.add_id(&bufID);
-    cb.add_name(fbb.CreateString(company->name));
-    cb.add_jur_name(fbb.CreateString(company->jur_name));
-    cb.add_address(fbb.CreateString(company->address));
-    char *inn = scriba_inn_to_string(&(company->inn));
-    cb.add_inn(fbb.CreateString(inn));
-    std::free(inn);
-    cb.add_phonenum(fbb.CreateString(company->phonenum));
-    cb.add_email(fbb.CreateString(company->email));
+    cb.add_name(company_name);
+    cb.add_jur_name(company_jur_name);
+    cb.add_address(company_address);
+    cb.add_inn(company_inn);
+    cb.add_phonenum(company_phonenum);
+    cb.add_email(company_email);
 
     scriba_freeCompanyData(company);
+    std::free(inn);
     return cb.Finish();
 }
 
 static fb::Offset<Event> serialize_event(scriba_id_t id, fb::FlatBufferBuilder &fbb)
 {
     ScribaEvent *event = scriba_getEvent(id);
+    ID bufID(id._high, id._low);
+    ID companyID(event->company_id._high, event->company_id._low);
+    ID projectID(event->project_id._high, event->project_id._low);
+    ID pocID(event->poc_id._high, event->poc_id._low);
+    auto event_descr = fbb.CreateString(event->descr);
+    auto event_outcome = fbb.CreateString(event->outcome);
 
     EventBuilder evb(fbb);
-    ID bufID(id._high, id._low);
     evb.add_id(&bufID);
-    evb.add_descr(fbb.CreateString(event->descr));
-    ID companyID(event->company_id._high, event->company_id._low);
+    evb.add_descr(event_descr);
     evb.add_company_id(&companyID);
-    ID projectID(event->project_id._high, event->project_id._low);
     evb.add_project_id(&projectID);
-    ID pocID(event->poc_id._high, event->poc_id._low);
     evb.add_poc_id(&pocID);
     switch(event->type)
     {
@@ -209,7 +235,7 @@ static fb::Offset<Event> serialize_event(scriba_id_t id, fb::FlatBufferBuilder &
         evb.add_type(EventType_TASK);
         break;
     }
-    evb.add_outcome(fbb.CreateString(event->outcome));
+    evb.add_outcome(event_outcome);
     evb.add_timestamp(event->timestamp);
     switch(event->state)
     {
@@ -231,18 +257,25 @@ static fb::Offset<Event> serialize_event(scriba_id_t id, fb::FlatBufferBuilder &
 static fb::Offset<POC> serialize_poc(scriba_id_t id, fb::FlatBufferBuilder &fbb)
 {
     ScribaPoc *poc = scriba_getPOC(id);
+    ID bufID(id._high, id._low);
+    ID companyID(poc->company_id._high, poc->company_id._low);
+    auto poc_firstname = fbb.CreateString(poc->firstname);
+    auto poc_secondname = fbb.CreateString(poc->secondname);
+    auto poc_lastname = fbb.CreateString(poc->lastname);
+    auto poc_mobilenum = fbb.CreateString(poc->mobilenum);
+    auto poc_phonenum = fbb.CreateString(poc->phonenum);
+    auto poc_email = fbb.CreateString(poc->email);
+    auto poc_position = fbb.CreateString(poc->position);
 
     POCBuilder pb(fbb);
-    ID bufID(id._high, id._low);
     pb.add_id(&bufID);
-    pb.add_firstname(fbb.CreateString(poc->firstname));
-    pb.add_secondname(fbb.CreateString(poc->secondname));
-    pb.add_lastname(fbb.CreateString(poc->lastname));
-    pb.add_mobilenum(fbb.CreateString(poc->mobilenum));
-    pb.add_phonenum(fbb.CreateString(poc->phonenum));
-    pb.add_email(fbb.CreateString(poc->email));
-    pb.add_position(fbb.CreateString(poc->position));
-    ID companyID(poc->company_id._high, poc->company_id._low);
+    pb.add_firstname(poc_firstname);
+    pb.add_secondname(poc_secondname);
+    pb.add_lastname(poc_lastname);
+    pb.add_mobilenum(poc_mobilenum);
+    pb.add_phonenum(poc_phonenum);
+    pb.add_email(poc_email);
+    pb.add_position(poc_position);
     pb.add_company_id(&companyID);
 
     scriba_freePOCData(poc);
@@ -252,13 +285,15 @@ static fb::Offset<POC> serialize_poc(scriba_id_t id, fb::FlatBufferBuilder &fbb)
 static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuilder &fbb)
 {
     ScribaProject *project = scriba_getProject(id);
+    ID bufID(id._high, id._low);
+    ID companyID(project->company_id._high, project->company_id._low);
+    auto project_title = fbb.CreateString(project->title);
+    auto project_descr = fbb.CreateString(project->descr);
 
     ProjectBuilder prjb(fbb);
-    ID bufID(id._high, id._low);
     prjb.add_id(&bufID);
-    prjb.add_title(fbb.CreateString(project->title));
-    prjb.add_descr(fbb.CreateString(project->descr));
-    ID companyID(project->company_id._high, project->company_id._low);
+    prjb.add_title(project_title);
+    prjb.add_descr(project_descr);
     prjb.add_company_id(&companyID);
     switch(project->state)
     {
