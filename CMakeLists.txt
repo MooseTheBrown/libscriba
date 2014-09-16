@@ -84,7 +84,8 @@ if (BUILD_UNIT_TESTS)
     set (LIBSCRIBA_UT_SRC ${libscriba_SOURCE_DIR}/test/main.c
                           ${libscriba_SOURCE_DIR}/test/mock_backend.c
                           ${libscriba_SOURCE_DIR}/test/frontend_test.c
-                          ${libscriba_SOURCE_DIR}/test/sqlite_backend_test.c)
+                          ${libscriba_SOURCE_DIR}/test/sqlite_backend_test.c
+                          ${libscriba_SOURCE_DIR}/test/serializer_test.c)
 
     find_library (CUNIT_LIB NAMES cunit)
     if (${CUNIT_LIB} EQUAL "CUNIT_LIB-NOTFOUND")

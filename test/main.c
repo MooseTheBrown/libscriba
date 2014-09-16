@@ -20,13 +20,15 @@
 
 #include "frontend_test.h"
 #include "sqlite_backend_test.h"
+#include "serializer_test.h"
 #include <CUnit/Basic.h>
 #include <stdio.h>
 
 int main()
 {
-    CU_pSuite frontend_test_suite= NULL;
-    CU_pSuite sqlite_backend_test_suite= NULL;
+    CU_pSuite frontend_test_suite = NULL;
+    CU_pSuite sqlite_backend_test_suite = NULL;
+    CU_pSuite serializer_test_suite = NULL;
     int ret = 0;
 
     if (CUE_SUCCESS != CU_initialize_registry())
@@ -68,6 +70,18 @@ int main()
     CU_add_test(sqlite_backend_test_suite,
                 "SQLite backend create with ID test",
                 test_create_with_id);
+
+    /* Serializer test suite */
+    serializer_test_suite = CU_add_suite(SERIALIZER_TEST_NAME,
+                                         serializer_test_init,
+                                         serializer_test_cleanup);
+    if (serializer_test_suite == NULL)
+    {
+        ret = CU_get_error();
+        goto cleanup;
+    }
+
+    CU_add_test(serializer_test_suite, "Serializer test", test_serializer);
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();

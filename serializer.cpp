@@ -49,11 +49,11 @@ extern "C"
 
 // serialize the given entries into binary buffer and return the buffer pointer
 // buflen will contain buffer size
-void *serialize(scriba_list_t *companies,
-                scriba_list_t *events,
-                scriba_list_t *people,
-                scriba_list_t *projects,
-                unsigned long *buflen)
+void *scriba_serialize(scriba_list_t *companies,
+                       scriba_list_t *events,
+                       scriba_list_t *people,
+                       scriba_list_t *projects,
+                       unsigned long *buflen)
 {
     fb::FlatBufferBuilder fbb;
     std::vector<flatbuffers::Offset<Company>> comp_offsets;
@@ -111,8 +111,8 @@ void *serialize(scriba_list_t *companies,
 
 // read entry data from the given buffer and store it in the local database
 // according to the given merge strategy
-enum ScribaMergeStatus deserialize(void *buf, unsigned long buflen,
-                                   enum ScribaMergeStrategy strategy)
+enum ScribaMergeStatus scriba_deserialize(void *buf, unsigned long buflen,
+                                          enum ScribaMergeStrategy strategy)
 {
     const Entries *entries = GetEntries(buf);
     bool conflicts = false;
