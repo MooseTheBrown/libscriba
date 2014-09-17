@@ -24,6 +24,7 @@
 #include "event.h"
 #include "poc.h"
 #include "project.h"
+#include "serializer.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,6 +37,9 @@ static jstring utf8_to_java_string(JNIEnv *env, jclass this, const char *utf8);
 
 // convert scriba list to an array of DataDescriptor objects
 static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, scriba_list_t *list);
+// convert array of DataDescriptor objects to scriba list
+static scriba_list_t *data_descr_array_to_scriba_list(JNIEnv *env, jclass this,
+                                                      jobjectArray data_descr_array);
 
 // convert Java UUID object to scriba_id_t
 static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id);
@@ -213,6 +217,49 @@ exit:
         free(data_descriptors);
     }
     return java_array;
+}
+
+// convert array of DataDescriptor objects to scriba list
+static scriba_list_t *data_descr_array_to_scriba_list(JNIEnv *env, jclass this,
+                                                      jobjectArray data_descr_array)
+{
+    jsize array_length;
+    scriba_list_t *scriba_list = scriba_list_init();
+    jfieldID uuid_field_id;
+    jclass data_descr_class;
+
+    data_descr_class = (*env)->FindClass(env, "org/scribacrm/libscriba/DataDescriptor");
+    if (data_descr_class == NULL)
+    {
+        goto exit;
+    }
+
+    uuid_field_id = (*env)->GetFieldID(env,
+                                       data_descr_class,
+                                       "id",
+                                       "Ljava/util/UUID;");
+    if (uuid_field_id == NULL)
+    {
+        goto exit;
+    }
+
+    array_length = (*env)->GetArrayLength(env, data_descr_array);
+    for (jsize i = 0; i < array_length; i++)
+    {
+        jobject data_descr = (*env)->GetObjectArrayElement(env, data_descr_array, i);
+        jobject uuid = (*env)->GetObjectField(env, data_descr, uuid_field_id);
+        scriba_id_t scriba_id;
+        UUID_to_scriba_id(env, uuid, &scriba_id);
+        scriba_list_add(scriba_list, scriba_id, NULL);
+        /* For now we don't need to copy text description of each entry here
+           because this function is currently used only by serializer, and it
+           needs only ids in the lists. */
+        (*env)->DeleteLocalRef(env, data_descr);
+        (*env)->DeleteLocalRef(env, uuid);
+    }
+
+exit:
+    return scriba_list;
 }
 
 // convert Java UUID object to scriba_id_t
@@ -1552,4 +1599,111 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeEvent(JNIEnv 
 
     UUID_to_scriba_id(env, id, &event_id);
     scriba_removeEvent(event_id);
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_serialize(JNIEnv *env,
+                                                                             jclass this,
+                                                                             jobjectArray companies,
+                                                                             jobjectArray events,
+                                                                             jobjectArray people,
+                                                                             jobjectArray projects)
+{
+    scriba_list_t *native_companies = data_descr_array_to_scriba_list(env, this, companies);
+    scriba_list_t *native_events = data_descr_array_to_scriba_list(env, this, events);
+    scriba_list_t *native_people = data_descr_array_to_scriba_list(env, this, people);
+    scriba_list_t *native_projects = data_descr_array_to_scriba_list(env, this, projects);
+    void *buf = NULL;
+    unsigned long buflen = 0;
+    jbyteArray java_array = NULL;
+
+    buf = scriba_serialize(native_companies,
+                           native_events,
+                           native_people,
+                           native_projects,
+                           &buflen);
+    if (buf == NULL)
+    {
+        goto exit;
+    }
+
+    java_array = (*env)->NewByteArray(env, buflen);
+    if (java_array == NULL)
+    {
+        goto exit;
+    }
+
+    (*env)->SetByteArrayRegion(env, java_array, 0, buflen, (jbyte *)buf);
+
+exit:
+    if (native_companies != NULL)
+    {
+        scriba_list_delete(native_companies);
+    }
+    if (native_events != NULL)
+    {
+        scriba_list_delete(native_events);
+    }
+    if (native_people != NULL)
+    {
+        scriba_list_delete(native_people);
+    }
+    if (native_projects != NULL)
+    {
+        scriba_list_delete(native_projects);
+    }
+    if (buf != NULL)
+    {
+        free(buf);
+    }
+
+    return java_array;
+}
+
+JNIEXPORT jbyte JNICALL Java_org_scribacrm_libscriba_ScribaDB_deserialize(JNIEnv *env,
+                                                                          jclass this,
+                                                                          jbyteArray buf,
+                                                                          jbyte mergeStrategy)
+{
+    jbyte status = 0;
+    enum ScribaMergeStatus native_status;
+    enum ScribaMergeStrategy native_strategy;
+    jbyte *native_buf = (*env)->GetByteArrayElements(env, buf, NULL);
+    jsize buflen = (*env)->GetArrayLength(env, buf);
+
+    switch (mergeStrategy)
+    {
+    case 0:
+        native_strategy = SCRIBA_MERGE_LOCAL_OVERRIDE;
+        break;
+    case 1:
+        native_strategy = SCRIBA_MERGE_REMOTE_OVERRIDE;
+        break;
+    case 2:
+        native_strategy = SCRIBA_MERGE_MANUAL;
+        break;
+    default:
+        native_strategy = SCRIBA_MERGE_LOCAL_OVERRIDE;
+        break;
+    }
+
+    native_status = scriba_deserialize((void *)native_buf,
+                                       (unsigned long)buflen,
+                                       native_strategy);
+
+    if (native_status == SCRIBA_MERGE_OK)
+    {
+        status = 0;
+    }
+    else
+    {
+        status = 1;
+    }
+
+exit:
+    if (native_buf != NULL)
+    {
+        (*env)->ReleaseByteArrayElements(env, buf, native_buf, JNI_ABORT);
+    }
+
+    return status;
 }

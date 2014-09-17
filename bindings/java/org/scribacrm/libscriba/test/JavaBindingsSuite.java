@@ -28,7 +28,8 @@ import org.junit.runners.Suite;
     CompanyTest.class,
     POCTest.class,
     ProjectTest.class,
-    EventTest.class
+    EventTest.class,
+    SerializerTest.class
 })
 
 public class JavaBindingsSuite {

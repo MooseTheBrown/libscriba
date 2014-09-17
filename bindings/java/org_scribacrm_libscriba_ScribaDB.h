@@ -279,6 +279,22 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateEvent
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_removeEvent
   (JNIEnv *, jclass, jobject);
 
+/*
+ * Class:     org_scribacrm_libscriba_ScribaDB
+ * Method:    serialize
+ * Signature: ([Lorg/scribacrm/libscriba/DataDescriptor;[Lorg/scribacrm/libscriba/DataDescriptor;[Lorg/scribacrm/libscriba/DataDescriptor;[Lorg/scribacrm/libscriba/DataDescriptor;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_serialize
+  (JNIEnv *, jclass, jobjectArray, jobjectArray, jobjectArray, jobjectArray);
+
+/*
+ * Class:     org_scribacrm_libscriba_ScribaDB
+ * Method:    deserialize
+ * Signature: ([BB)B
+ */
+JNIEXPORT jbyte JNICALL Java_org_scribacrm_libscriba_ScribaDB_deserialize
+  (JNIEnv *, jclass, jbyteArray, jbyte);
+
 #ifdef __cplusplus
 }
 #endif

@@ -49,6 +49,19 @@ public final class ScribaDB {
         public String location;
     }
 
+    // merge strategies
+    public static class MergeStrategy {
+        public static final byte LOCAL_OVERRIDE = 0;
+        public static final byte REMOTE_OVERRIDE = 1;
+        public static final byte MANUAL = 2;
+    }
+
+    // merge status
+    public static class MergeStatus {
+        public static final byte OK = 0;
+        public static final byte CONFLICTS = 1;
+    }
+
     // library initialization and cleanup
     public static native int init(DBDescr descr, DBParam[] params);
     public static native void cleanup();
@@ -97,6 +110,14 @@ public final class ScribaDB {
     public static native void addEvent(String descr, UUID company_id, UUID poc_id, UUID project_id, byte type, String outcome, long timestamp, byte state);
     public static native void updateEvent(Event event);
     public static native void removeEvent(UUID id);
+
+    // serialization routines
+    public static native byte[] serialize(DataDescriptor[] companies,
+                                          DataDescriptor[] events,
+                                          DataDescriptor[] people,
+                                          DataDescriptor[] projects);
+
+    public static native byte deserialize(byte[] buf, byte mergeStrategy);
 
     public static byte[] getUtf8FromString(String str) throws UnsupportedEncodingException {
         if (str == null) {
