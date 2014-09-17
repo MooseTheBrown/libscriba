@@ -26,5 +26,7 @@
 int serializer_test_init();
 int serializer_test_cleanup();
 void test_serializer();
+void test_serializer_remote_override();
+void test_serializer_local_override();
 
 #endif // SCRIBA_SERIALIZER_TEST_H

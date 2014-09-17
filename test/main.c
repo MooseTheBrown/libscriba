@@ -82,6 +82,12 @@ int main()
     }
 
     CU_add_test(serializer_test_suite, "Serializer test", test_serializer);
+    CU_add_test(serializer_test_suite,
+                "Serializer remote override test",
+                test_serializer_remote_override);
+    CU_add_test(serializer_test_suite,
+                "Serializer local override test",
+                test_serializer_local_override);
 
     CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();

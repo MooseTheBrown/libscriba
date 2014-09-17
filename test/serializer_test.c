@@ -85,6 +85,8 @@ int serializer_test_cleanup()
     return 0;
 }
 
+// general serializer test, verifies that serializer is able to save and
+// restore data without corrupting it
 void test_serializer()
 {
     // populate local DB
@@ -110,9 +112,88 @@ void test_serializer()
 
     // restore data from the buffer
     enum ScribaMergeStatus status = scriba_deserialize(buf, buflen, SCRIBA_MERGE_REMOTE_OVERRIDE);
+    CU_ASSERT_EQUAL(status, SCRIBA_MERGE_OK);
 
     // verify it
     verify_test_data();
+    free(buf);
+}
+
+// test remote override merge strategy
+void test_serializer_remote_override()
+{
+    // populate local DB
+    create_test_data();
+
+    // export all entries to buffer
+    scriba_list_t *companies = scriba_getAllCompanies();
+    scriba_list_t *people = scriba_getAllPeople();
+    scriba_list_t *projects = scriba_getAllProjects();
+    scriba_list_t *events = scriba_getAllEvents();
+
+    void *buf = NULL;
+    unsigned long buflen = 0;
+    buf = scriba_serialize(companies, events, people, projects, &buflen);
+
+    // modify local data
+    struct ScribaCompany *company = scriba_getCompany(companies->id);
+    free(company->name);
+    int len = strlen("Modified company name");
+    company->name = (char *)malloc(len + 1);
+    strncpy(company->name, "Modified company name", len);
+    scriba_updateCompany(company);
+    scriba_freeCompanyData(company);
+
+    // restore data from the buffer
+    enum ScribaMergeStatus status = scriba_deserialize(buf, buflen, SCRIBA_MERGE_REMOTE_OVERRIDE);
+    CU_ASSERT_EQUAL(status, SCRIBA_MERGE_OK);
+
+    // verify that local modifications have been overriden by data from the buffer
+    verify_test_data();
+    free(buf);
+
+    scriba_list_delete(companies);
+    scriba_list_delete(people);
+    scriba_list_delete(projects);
+    scriba_list_delete(events);
+}
+
+// test local override merge strategy
+void test_serializer_local_override()
+{
+    // populate local DB
+    create_test_data();
+
+    // export all entries to buffer
+    scriba_list_t *companies = scriba_getAllCompanies();
+    scriba_list_t *people = scriba_getAllPeople();
+    scriba_list_t *projects = scriba_getAllProjects();
+    scriba_list_t *events = scriba_getAllEvents();
+
+    void *buf = NULL;
+    unsigned long buflen = 0;
+    buf = scriba_serialize(companies, events, people, projects, &buflen);
+
+    scriba_list_delete(companies);
+    scriba_list_delete(people);
+    scriba_list_delete(projects);
+    scriba_list_delete(events);
+
+    // modify local data
+    struct ScribaProject *project = scriba_getProject(project2_id);
+    project->state = PROJECT_STATE_REJECTED;
+    scriba_updateProject(project);
+    scriba_freeProjectData(project);
+
+    // restore data from the buffer
+    enum ScribaMergeStatus status = scriba_deserialize(buf, buflen, SCRIBA_MERGE_LOCAL_OVERRIDE);
+    CU_ASSERT_EQUAL(status, SCRIBA_MERGE_OK);
+    
+    // verify that project 2 modifications are kept after deserialization
+    project = scriba_getProject(project2_id);
+    CU_ASSERT_EQUAL(project->state, PROJECT_STATE_REJECTED);
+    scriba_freeProjectData(project);
+
     free(buf);
 }
 
