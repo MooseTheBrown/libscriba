@@ -23,7 +23,8 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := scriba-java
-LOCAL_SRC_FILES := company.c event.c org_scribacrm_libscriba_ScribaDB.c poc.c project.c scriba.c sqlite3.c sqlite_backend.c types.c
+LOCAL_SRC_FILES := company.c event.c org_scribacrm_libscriba_ScribaDB.c poc.c project.c scriba.c sqlite3.c sqlite_backend.c types.c serializer.cpp
 LOCAL_CFLAGS := -std=c99
+LOCAL_CPPFLAGS := -std=c++11
 
 include $(BUILD_SHARED_LIBRARY)

@@ -38,8 +38,10 @@ ANDROID_MK_FILE=$SOURCE_DIR/Android.mk
 
 LIBRARY_INCLUDE_DIR=$SOURCE_DIR/include
 LIBRARY_INCLUDE_FILES=`ls $LIBRARY_INCLUDE_DIR/*.h`
+FLATBUFFERS_INCLUDE_DIR=$SOURCE_DIR/include/flatbuffers
+FLATBUFFERS_INCLUDE_FILES=`ls $FLATBUFFERS_INCLUDE_DIR/*.h`
 
-LIBRARY_FRONTEND_FILES=`ls *.c *.h`
+LIBRARY_FRONTEND_FILES=`ls *.c *.cpp *.h`
 
 LIBRARY_BACKEND_DIR=$SOURCE_DIR/sqlite-backend
 LIBRARY_BACKEND_FILES=`ls $LIBRARY_BACKEND_DIR/*`
@@ -51,16 +53,23 @@ JAVA_SRC_FILES=`ls $JAVA_SRC_DIR/*.java`
 
 # target directories
 NATIVE_TARGET_DIR=$ANDROID_PROJECT_DIR/jni
+FLATBUFFERS_TARGET_DIR=$NATIVE_TARGET_DIR/flatbuffers
 JAVA_TARGET_DIR=$ANDROID_PROJECT_DIR/src/org/scribacrm/libscriba
 
 copy_files()
 {
     echo "Copying files..."
 
-    # copy C sources
+    # copy sources
+
     mkdir $NATIVE_TARGET_DIR
     for header in $LIBRARY_INCLUDE_FILES; do
         cp $header $NATIVE_TARGET_DIR/
+    done
+
+    mkdir $FLATBUFFERS_TARGET_DIR
+    for header in $FLATBUFFERS_INCLUDE_FILES; do
+        cp $header $FLATBUFFERS_TARGET_DIR/
     done
 
     for file in $LIBRARY_FRONTEND_FILES; do
