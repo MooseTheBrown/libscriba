@@ -35,6 +35,7 @@ ANDROID_PROJECT_DIR=$1
 SOURCE_DIR=`pwd`
 
 ANDROID_MK_FILE=$SOURCE_DIR/Android.mk
+APPLICATION_MK_FILE=$SOURCE_DIR/Application.mk
 
 LIBRARY_INCLUDE_DIR=$SOURCE_DIR/include
 LIBRARY_INCLUDE_FILES=`ls $LIBRARY_INCLUDE_DIR/*.h`
@@ -80,8 +81,9 @@ copy_files()
         cp $file $NATIVE_TARGET_DIR/
     done
 
-    # copy Android.mk
+    # copy Android.mk and Application.mk
     cp $ANDROID_MK_FILE $NATIVE_TARGET_DIR/
+    cp $APPLICATION_MK_FILE $NATIVE_TARGET_DIR/
 
     # copy JNI sources
     for file in $LIBRARY_JNI_FILES; do
