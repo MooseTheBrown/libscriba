@@ -18,6 +18,7 @@
  *
  */
 
+#include "common_test.h"
 #include "frontend_test.h"
 #include "sqlite_backend_test.h"
 #include "serializer_test.h"

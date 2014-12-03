@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2014 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
@@ -18,12 +18,13 @@
  *
  */
 
-#ifndef SCRIBA_FRONTEND_TEST_H
-#define SCRIBA_FRONTEND_TEST_H
+#ifndef SCRIBA_COMMON_TEST_H
+#define SCRIBA_COMMON_TEST_H
 
-#define FRONTEND_TEST_NAME "Frontend test"
+void test_company();
+void test_poc();
+void test_project();
+void test_event();
+void test_create_with_id();
 
-int frontend_test_init();
-int frontend_test_cleanup();
-
-#endif // SCRIBA_FRONTEND_TEST_H
+#endif // SCRIBA_COMMON_TEST_H

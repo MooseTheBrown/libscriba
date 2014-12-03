@@ -82,6 +82,7 @@ endif (BUILD_JAVA_BINDINGS)
 if (BUILD_UNIT_TESTS)
     # main library tests
     set (LIBSCRIBA_UT_SRC ${libscriba_SOURCE_DIR}/test/main.c
+                          ${libscriba_SOURCE_DIR}/test/common_test.c
                           ${libscriba_SOURCE_DIR}/test/mock_backend.c
                           ${libscriba_SOURCE_DIR}/test/frontend_test.c
                           ${libscriba_SOURCE_DIR}/test/sqlite_backend_test.c
