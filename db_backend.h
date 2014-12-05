@@ -33,6 +33,7 @@ struct ScribaDBFuncTbl
     // company-related functions
     struct ScribaCompany* (*getCompany)(scriba_id_t);
     scriba_list_t* (*getAllCompanies)(void);
+    scriba_list_t* (*searchCompanies)(const char*);
     scriba_list_t* (*getCompaniesByName)(const char *);
     scriba_list_t* (*getCompaniesByJurName)(const char *);
     scriba_list_t* (*getCompaniesByAddress)(const char *);

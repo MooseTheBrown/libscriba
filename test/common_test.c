@@ -692,3 +692,59 @@ void test_create_with_id()
     CU_ASSERT_EQUAL(event->type, EVENT_TYPE_CALL);
     scriba_freeEventData(event);
 }
+
+void test_company_search()
+{
+    scriba_id_t company1_id;
+    scriba_id_t company2_id;
+    scriba_id_t company3_id;
+    scriba_list_t *companies = NULL;
+
+    scriba_id_create(&company1_id);
+    scriba_id_create(&company2_id);
+    scriba_id_create(&company3_id);
+
+    scriba_addCompanyWithID(company1_id, "Test Company 1", "SomethingUnique",
+                            "addr", scriba_inn_from_string("0123456789"), "555",
+                            "test@test.com");
+    scriba_addCompanyWithID(company2_id, "Test Company 2", "Test2 LLC",
+                            "addr", scriba_inn_from_string("0123456789"), "555",
+                            "test@test.com");
+    scriba_addCompanyWithID(company1_id, "Different_company", "Test3 LLC",
+                            "addr", scriba_inn_from_string("0123456789"), "555",
+                            "test@test.com");
+
+    companies = scriba_searchCompanies("Test");
+    // "Test" should give us name match for company1 and company2
+    CU_ASSERT_PTR_NOT_NULL(companies);
+    CU_ASSERT_PTR_NOT_NULL(companies->next);
+    CU_ASSERT(scriba_id_compare(&company1_id, &(companies->id)));
+    CU_ASSERT(scriba_id_compare(&company2_id, &(companies->next->id)));
+
+    scriba_list_delete(companies);
+
+    companies = scriba_searchCompanies("LLC");
+    // "LLC" should give us juridicial name match for company2 and company3
+    CU_ASSERT_PTR_NOT_NULL(companies);
+    CU_ASSERT_PTR_NOT_NULL(companies->next);
+    CU_ASSERT(scriba_id_compare(&company2_id, &(companies->id)));
+    CU_ASSERT(scriba_id_compare(&company3_id, &(companies->next->id)));
+
+    scriba_list_delete(companies);
+
+    companies = scriba_searchCompanies("company");
+    // search should be case insensitive, so this should give all three companies
+    CU_ASSERT_PTR_NOT_NULL(companies);
+    CU_ASSERT_PTR_NOT_NULL(companies->next);
+    CU_ASSERT_PTR_NOT_NULL(companies->next->next);
+    CU_ASSERT(scriba_id_compare(&company1_id, &(companies->id)));
+    CU_ASSERT(scriba_id_compare(&company2_id, &(companies->next->id)));
+    CU_ASSERT(scriba_id_compare(&company3_id, &(companies->next->next->id)));
+
+    scriba_list_delete(companies);
+
+    companies = scriba_searchCompanies("Nonexistent");
+    CU_ASSERT_PTR_NULL(companies);
+
+    scriba_list_delete(companies);
+}

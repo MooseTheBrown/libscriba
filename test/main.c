@@ -53,6 +53,7 @@ int main()
     CU_add_test(frontend_test_suite, "Frontend project test", test_project);
     CU_add_test(frontend_test_suite, "Frontend event test", test_event);
     CU_add_test(frontend_test_suite, "Frontend create with ID test", test_create_with_id);
+    CU_add_test(frontend_test_suite, "Frontend company search test", test_company_search);
 
     /* SQLite backend test suite */
     sqlite_backend_test_suite = CU_add_suite(SQLITE_BACKEND_TEST_NAME,

@@ -121,6 +121,7 @@ static scriba_list_t *companySearch(const char *query, const char *text);
 // company handling interface functions
 static struct ScribaCompany *getCompany(scriba_id_t id);
 static scriba_list_t *getAllCompanies();
+static scriba_list_t *searchCompanies(const char *search);
 static scriba_list_t *getCompaniesByName(const char *name);
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name);
 static scriba_list_t *getCompaniesByAddress(const char *address);
@@ -235,6 +236,7 @@ int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTb
 
     fTbl->getCompany = getCompany;
     fTbl->getAllCompanies = getAllCompanies;
+    fTbl->searchCompanies = searchCompanies;
     fTbl->getCompaniesByName = getCompaniesByName;
     fTbl->getCompaniesByJurName = getCompaniesByJurName;
     fTbl->getCompaniesByAddress = getCompaniesByAddress;
@@ -604,6 +606,12 @@ error:
 static scriba_list_t *getAllCompanies()
 {
     return companySearch("SELECT id, name FROM Companies", NULL);
+}
+
+static scriba_list_t *searchCompanies(const char *search)
+{
+    // TODO: actual implementation
+    return NULL;
 }
 
 static scriba_list_t *getCompaniesByName(const char *name)

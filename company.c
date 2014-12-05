@@ -37,6 +37,12 @@ scriba_list_t *scriba_getAllCompanies()
     return (fTbl->getAllCompanies());
 }
 
+// search companies by name and juridicial name
+scriba_list_t *scriba_searchCompanies(const char *search)
+{
+    return (fTbl->searchCompanies(search));
+}
+
 // get companies with given name
 scriba_list_t *scriba_getCompaniesByName(const char *name)
 {

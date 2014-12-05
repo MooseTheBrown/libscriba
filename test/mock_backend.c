@@ -21,6 +21,7 @@
 #include "mock_backend.h"
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 static struct MockBackendData mockData;
 
@@ -33,6 +34,7 @@ static void mock_backend_cleanup();
 
 static struct ScribaCompany *getCompany(scriba_id_t id);
 static scriba_list_t *getAllCompanies();
+static scriba_list_t *searchCompanies(const char *search_str);
 static scriba_list_t *getCompaniesByName(const char *name);
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name);
 static scriba_list_t *getCompaniesByAddress(const char *address);
@@ -80,6 +82,8 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
 static void updateProject(const struct ScribaProject *project);
 static void removeProject(scriba_id_t id);
 static void free_project_data(struct ScribaProject *project);
+
+static char *str_tolower(const char *str);
 
 
 
@@ -166,6 +170,7 @@ static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncT
 {
     fTbl->getCompany = getCompany;
     fTbl->getAllCompanies = getAllCompanies;
+    fTbl->searchCompanies = searchCompanies;
     fTbl->getCompaniesByName = getCompaniesByName;
     fTbl->getCompaniesByJurName = getCompaniesByJurName;
     fTbl->getCompaniesByAddress = getCompaniesByAddress;
@@ -281,6 +286,33 @@ static scriba_list_t *getAllCompanies()
     }
 
     return list;
+}
+
+static scriba_list_t *searchCompanies(const char *search_str)
+{
+    int i;
+    scriba_list_t *list = scriba_list_init();
+    char *search_lower = str_tolower(search_str);
+
+    for (i = 0; i < mockData.num_companies; i++)
+    {
+        if (mockData.companies[i] != NULL)
+        {
+            char *name_lower = str_tolower(mockData.companies[i]->name);
+            char *jurname_lower = str_tolower(mockData.companies[i]->jur_name);
+
+            if ((strstr(name_lower, search_lower) != NULL) ||
+                (strstr(jurname_lower, search_lower) != NULL))
+            {
+                scriba_list_add(list, mockData.companies[i]->id, mockData.companies[i]->name);
+            }
+
+            free(name_lower);
+            free(jurname_lower);
+        }
+    }
+
+    free(search_lower);
 }
 
 static scriba_list_t *getCompaniesByName(const char *name)
@@ -1070,4 +1102,25 @@ static void free_project_data(struct ScribaProject *project)
         free(project->descr);
         project->descr = NULL;
     }
+}
+
+static char *str_tolower(const char *str)
+{
+    int len = 0;
+    char *result = NULL;
+
+    if (str == NULL)
+    {
+        return NULL;
+    }
+
+    len = strlen(str);
+    result = (char *)malloc(len + 1);
+    for (int i = 0; i < len; i++)
+    {
+        result[i] = tolower(str[i]);
+    }
+    result[len] = 0;
+
+    return result;
 }

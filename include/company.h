@@ -47,6 +47,8 @@ struct ScribaCompany
 struct ScribaCompany *scriba_getCompany(scriba_id_t id);
 // get all companies stored in the database
 scriba_list_t *scriba_getAllCompanies();
+// search companies by name and juridicial name
+scriba_list_t *scriba_searchCompanies(const char *search);
 // get companies with given name
 scriba_list_t *scriba_getCompaniesByName(const char *name);
 // get companies with given juridicial name
