@@ -23,23 +23,43 @@
 
 #include "db_backend.h"
 
+struct MockCompanyList
+{
+    struct ScribaCompany *data;
+    struct MockCompanyList *next;
+};
+
+struct MockEventList
+{
+    struct ScribaEvent *data;
+    struct MockEventList *next;
+};
+
+struct MockPOCList
+{
+    struct ScribaPoc *data;
+    struct MockPOCList *next;
+};
+
+struct MockProjectList
+{
+    struct ScribaProject *data;
+    struct MockProjectList *next;
+};
+
 struct MockBackendData
 {
     // companies
-    struct ScribaCompany **companies;
-    int num_companies;
+    struct MockCompanyList *companies;
 
     // events
-    struct ScribaEvent **events;
-    int num_events;
+    struct MockEventList *events;
 
     // people
-    struct ScribaPoc **people;
-    int num_people;
+    struct MockPOCList *people;
 
     // projects
-    struct ScribaProject **projects;
-    int num_projects;
+    struct MockProjectList *projects;
 };
 
 struct ScribaInternalDB *mock_backend_init();

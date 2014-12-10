@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+// clean test database
+static void clean_db();
+
 void test_company()
 {
     scriba_list_t *companies = NULL;
@@ -172,6 +175,8 @@ void test_company()
     scriba_list_delete(companies);
     scriba_freeCompanyData(company);
     scriba_freeCompanyData(company1);
+
+    clean_db();
 }
 
 void test_poc()
@@ -371,6 +376,8 @@ void test_poc()
     scriba_freePOCData(poc2);
     scriba_freePOCData(poc3);
     scriba_freePOCData(poc4);
+
+    clean_db();
 }
 
 void test_project()
@@ -475,6 +482,8 @@ void test_project()
 
     scriba_freeProjectData(project1);
     scriba_freeProjectData(project2);
+
+    clean_db();
 }
 
 void test_event()
@@ -641,6 +650,8 @@ void test_event()
     scriba_freeEventData(event1);
     scriba_freeEventData(event2);
     scriba_freeEventData(event3);
+
+    clean_db();
 }
 
 void test_create_with_id()
@@ -691,6 +702,8 @@ void test_create_with_id()
     CU_ASSERT(scriba_id_compare(&event_id, &(event->id)));
     CU_ASSERT_EQUAL(event->type, EVENT_TYPE_CALL);
     scriba_freeEventData(event);
+
+    clean_db();
 }
 
 void test_company_search()
@@ -705,36 +718,38 @@ void test_company_search()
     scriba_id_create(&company3_id);
 
     scriba_addCompanyWithID(company1_id, "Test Company 1", "SomethingUnique",
-                            "addr", scriba_inn_from_string("0123456789"), "555",
+                            "unknown", scriba_inn_from_string("0123456789"), "555",
                             "test@test.com");
     scriba_addCompanyWithID(company2_id, "Test Company 2", "Test2 LLC",
-                            "addr", scriba_inn_from_string("0123456789"), "555",
+                            "addr2", scriba_inn_from_string("0123456789"), "555",
                             "test@test.com");
-    scriba_addCompanyWithID(company1_id, "Different_company", "Test3 LLC",
-                            "addr", scriba_inn_from_string("0123456789"), "555",
+    scriba_addCompanyWithID(company3_id, "Different_company", "Test3 LLC",
+                            "addr3", scriba_inn_from_string("0123456789"), "555",
                             "test@test.com");
 
-    companies = scriba_searchCompanies("Test");
+    companies = scriba_getCompaniesByName("Test");
     // "Test" should give us name match for company1 and company2
-    CU_ASSERT_PTR_NOT_NULL(companies);
+    CU_ASSERT_FALSE(scriba_list_is_empty(companies));
     CU_ASSERT_PTR_NOT_NULL(companies->next);
     CU_ASSERT(scriba_id_compare(&company1_id, &(companies->id)));
     CU_ASSERT(scriba_id_compare(&company2_id, &(companies->next->id)));
 
     scriba_list_delete(companies);
+    companies = NULL;
 
-    companies = scriba_searchCompanies("LLC");
+    companies = scriba_getCompaniesByJurName("LLC");
     // "LLC" should give us juridicial name match for company2 and company3
-    CU_ASSERT_PTR_NOT_NULL(companies);
+    CU_ASSERT_FALSE(scriba_list_is_empty(companies));
     CU_ASSERT_PTR_NOT_NULL(companies->next);
     CU_ASSERT(scriba_id_compare(&company2_id, &(companies->id)));
     CU_ASSERT(scriba_id_compare(&company3_id, &(companies->next->id)));
 
     scriba_list_delete(companies);
+    companies = NULL;
 
-    companies = scriba_searchCompanies("company");
+    companies = scriba_getCompaniesByName("company");
     // search should be case insensitive, so this should give all three companies
-    CU_ASSERT_PTR_NOT_NULL(companies);
+    CU_ASSERT_FALSE(scriba_list_is_empty(companies));
     CU_ASSERT_PTR_NOT_NULL(companies->next);
     CU_ASSERT_PTR_NOT_NULL(companies->next->next);
     CU_ASSERT(scriba_id_compare(&company1_id, &(companies->id)));
@@ -742,9 +757,70 @@ void test_company_search()
     CU_ASSERT(scriba_id_compare(&company3_id, &(companies->next->next->id)));
 
     scriba_list_delete(companies);
+    companies = NULL;
 
-    companies = scriba_searchCompanies("Nonexistent");
-    CU_ASSERT_PTR_NULL(companies);
+    companies = scriba_getCompaniesByName("Nonexistent");
+    CU_ASSERT(scriba_list_is_empty(companies));
 
     scriba_list_delete(companies);
+    companies = NULL;
+
+    companies = scriba_getCompaniesByAddress("addr");
+    CU_ASSERT_FALSE(scriba_list_is_empty(companies));
+    CU_ASSERT_PTR_NOT_NULL(companies->next);
+    CU_ASSERT(scriba_id_compare(&company2_id, &(companies->id)));
+    CU_ASSERT(scriba_id_compare(&company3_id, &(companies->next->id)));
+
+    scriba_list_delete(companies);
+    companies = NULL;
+
+    clean_db();
+}
+
+static void clean_db()
+{
+    scriba_list_t *companies = NULL;
+    scriba_list_t *events = NULL;
+    scriba_list_t *people = NULL;
+    scriba_list_t *projects = NULL;
+
+    events = scriba_getAllEvents();
+    if (events != NULL)
+    {
+        scriba_list_for_each(events, event)
+        {
+            scriba_removeEvent(event->id);
+        }
+        scriba_list_delete(events);
+    }
+
+    projects = scriba_getAllProjects();
+    if (projects != NULL)
+    {
+        scriba_list_for_each(projects, project)
+        {
+            scriba_removeProject(project->id);
+        }
+        scriba_list_delete(projects);
+    }
+
+    people = scriba_getAllPeople();
+    if (people != NULL)
+    {
+        scriba_list_for_each(people, poc)
+        {
+            scriba_removePOC(poc->id);
+        }
+        scriba_list_delete(people);
+    }
+
+    companies = scriba_getAllCompanies();
+    if (companies != NULL)
+    {
+        scriba_list_for_each(companies, company)
+        {
+            scriba_removeCompany(company->id);
+        }
+        scriba_list_delete(companies);
+    }
 }
