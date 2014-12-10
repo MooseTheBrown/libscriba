@@ -58,6 +58,13 @@ if (${PTHREAD_LIB} EQUAL "PTHREAD_LIB-NOTFOUND")
 endif (${PTHREAD_LIB} EQUAL "PTHREAD_LIB-NOTFOUND")
 list (APPEND LIBSCRIBA_REQUIRED_LIBS ${PTHREAD_LIB})
 
+# sqlite for scriba is built with ICU support
+find_library (ICU_LIB NAMES icui18n)
+if (${ICU_LIB} EQUAL "ICU_LIB-NOTFOUND")
+    message(FATAL_ERROR "Couldn't find ICU library")
+endif (${ICU_LIB} EQUAL "ICU_LIB-NOTFOUND")
+list (APPEND LIBSCRIBA_REQUIRED_LIBS ${ICU_LIB})
+
 add_library (scriba SHARED ${LIBSCRIBA_SRC})
 target_link_libraries (scriba ${LIBSCRIBA_REQUIRED_LIBS})
 
