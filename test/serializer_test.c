@@ -19,6 +19,7 @@
  */
 
 #include "serializer_test.h"
+#include "common_test.h"
 #include "sqlite_backend.h"
 #include "serializer.h"
 #include <stdlib.h>
@@ -38,8 +39,6 @@ static scriba_id_t event2_id;
 
 // populate local DB with test data
 static void create_test_data();
-// remove all data from the local DB
-static void clean_local_db();
 // verify data restored from buffer
 static void verify_test_data();
 
@@ -233,37 +232,6 @@ static void create_test_data()
                           EVENT_TYPE_TASK, "overdue", (scriba_time_t)0, EVENT_STATE_COMPLETED);
 }
 
-// remove all data from the local DB
-static void clean_local_db()
-{
-    scriba_list_t *companies = scriba_getAllCompanies();
-    scriba_list_for_each(companies, company)
-    {
-        scriba_removeCompany(company->id);
-    }
-    scriba_list_delete(companies);
-
-    scriba_list_t *people = scriba_getAllPeople();
-    scriba_list_for_each(people, poc)
-    {
-        scriba_removePOC(poc->id);
-    }
-    scriba_list_delete(people);
-
-    scriba_list_t *projects = scriba_getAllProjects();
-    scriba_list_for_each(projects, project)
-    {
-        scriba_removeProject(project->id);
-    }
-    scriba_list_delete(projects);
-
-    scriba_list_t *events = scriba_getAllEvents();
-    scriba_list_for_each(events, event)
-    {
-        scriba_removeEvent(event->id);
-    }
-    scriba_list_delete(events);
-}
 
 // verify data restored from buffer
 static void verify_test_data()

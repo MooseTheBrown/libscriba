@@ -24,12 +24,10 @@
 #include "poc.h"
 #include "project.h"
 #include "event.h"
+#include "common_test.h"
 #include <CUnit/CUnit.h>
 #include <stdlib.h>
 #include <time.h>
-
-// clean test database
-static void clean_db();
 
 void test_company()
 {
@@ -176,7 +174,7 @@ void test_company()
     scriba_freeCompanyData(company);
     scriba_freeCompanyData(company1);
 
-    clean_db();
+    clean_local_db();
 }
 
 void test_poc()
@@ -377,7 +375,7 @@ void test_poc()
     scriba_freePOCData(poc3);
     scriba_freePOCData(poc4);
 
-    clean_db();
+    clean_local_db();
 }
 
 void test_project()
@@ -483,7 +481,7 @@ void test_project()
     scriba_freeProjectData(project1);
     scriba_freeProjectData(project2);
 
-    clean_db();
+    clean_local_db();
 }
 
 void test_event()
@@ -651,7 +649,7 @@ void test_event()
     scriba_freeEventData(event2);
     scriba_freeEventData(event3);
 
-    clean_db();
+    clean_local_db();
 }
 
 void test_create_with_id()
@@ -703,7 +701,7 @@ void test_create_with_id()
     CU_ASSERT_EQUAL(event->type, EVENT_TYPE_CALL);
     scriba_freeEventData(event);
 
-    clean_db();
+    clean_local_db();
 }
 
 void test_company_search()
@@ -774,53 +772,37 @@ void test_company_search()
     scriba_list_delete(companies);
     companies = NULL;
 
-    clean_db();
+    clean_local_db();
 }
 
-static void clean_db()
+// remove all data from the local DB
+void clean_local_db()
 {
-    scriba_list_t *companies = NULL;
-    scriba_list_t *events = NULL;
-    scriba_list_t *people = NULL;
-    scriba_list_t *projects = NULL;
-
-    events = scriba_getAllEvents();
-    if (events != NULL)
+    scriba_list_t *companies = scriba_getAllCompanies();
+    scriba_list_for_each(companies, company)
     {
-        scriba_list_for_each(events, event)
-        {
-            scriba_removeEvent(event->id);
-        }
-        scriba_list_delete(events);
+        scriba_removeCompany(company->id);
     }
+    scriba_list_delete(companies);
 
-    projects = scriba_getAllProjects();
-    if (projects != NULL)
+    scriba_list_t *people = scriba_getAllPeople();
+    scriba_list_for_each(people, poc)
     {
-        scriba_list_for_each(projects, project)
-        {
-            scriba_removeProject(project->id);
-        }
-        scriba_list_delete(projects);
+        scriba_removePOC(poc->id);
     }
+    scriba_list_delete(people);
 
-    people = scriba_getAllPeople();
-    if (people != NULL)
+    scriba_list_t *projects = scriba_getAllProjects();
+    scriba_list_for_each(projects, project)
     {
-        scriba_list_for_each(people, poc)
-        {
-            scriba_removePOC(poc->id);
-        }
-        scriba_list_delete(people);
+        scriba_removeProject(project->id);
     }
+    scriba_list_delete(projects);
 
-    companies = scriba_getAllCompanies();
-    if (companies != NULL)
+    scriba_list_t *events = scriba_getAllEvents();
+    scriba_list_for_each(events, event)
     {
-        scriba_list_for_each(companies, company)
-        {
-            scriba_removeCompany(company->id);
-        }
-        scriba_list_delete(companies);
+        scriba_removeEvent(event->id);
     }
+    scriba_list_delete(events);
 }
