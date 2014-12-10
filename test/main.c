@@ -72,6 +72,12 @@ int main()
     CU_add_test(sqlite_backend_test_suite,
                 "SQLite backend create with ID test",
                 test_create_with_id);
+    CU_add_test(sqlite_backend_test_suite,
+                "SQLite backend company search test",
+                test_company_search);
+    CU_add_test(sqlite_backend_test_suite,
+                "SQLite backend company search test in Russian",
+                test_ru_company_search);
 
     /* Serializer test suite */
     serializer_test_suite = CU_add_suite(SERIALIZER_TEST_NAME,

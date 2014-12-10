@@ -273,9 +273,11 @@ static scriba_list_t *getCompaniesByName(const char *name)
             scriba_list_add(list, company->data->id, company->data->name);
         }
 
+        free(name_lower);
         company = company->next;
     }
 
+    free(search_lower);
     return list;
 }
 
@@ -295,8 +297,10 @@ static scriba_list_t *getCompaniesByJurName(const char *juridicial_name)
         }
 
         company = company->next;
+        free(jur_name_lower);
     }
 
+    free(search_lower);
     return list;
 }
 
@@ -316,8 +320,10 @@ static scriba_list_t *getCompaniesByAddress(const char *address)
         }
 
         company = company->next;
+        free(addr_lower);
     }
 
+    free(search_lower);
     return list;
 }
 

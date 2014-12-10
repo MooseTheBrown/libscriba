@@ -30,9 +30,9 @@
 #define CREATE_COMPANY_TABLE "CREATE TABLE Companies"\
     "("\
     "id BLOB PRIMARY KEY,"\
-    "name TEXT,"\
-    "jur_name TEXT,"\
-    "address TEXT,"\
+    "name TEXT COLLATE NOCASE,"\
+    "jur_name TEXT COLLATE NOCASE,"\
+    "address TEXT COLLATE NOCASE,"\
     "inn TEXT,"\
     "phonenum TEXT,"\
     "email TEXT"\
@@ -43,7 +43,7 @@
 #define CREATE_EVENT_TABLE "CREATE TABLE Events"\
     "("\
     "id BLOB PRIMARY KEY,"\
-    "descr TEXT,"\
+    "descr TEXT COLLATE NOCASE,"\
     "company_id BLOB,"\
     "poc_id BLOB,"\
     "project_id BLOB,"\
@@ -58,13 +58,13 @@
 #define CREATE_POC_TABLE "CREATE TABLE People"\
     "("\
     "id BLOB PRIMARY KEY,"\
-    "firstname TEXT,"\
-    "secondname TEXT,"\
-    "lastname TEXT,"\
+    "firstname TEXT COLLATE NOCASE,"\
+    "secondname TEXT COLLATE NOCASE,"\
+    "lastname TEXT COLLATE NOCASE,"\
     "mobilenum TEXT,"\
     "phonenum TEXT,"\
     "email TEXT,"\
-    "position TEXT,"\
+    "position TEXT COLLATE NOCASE,"\
     "company_id BLOB"\
     ")"
 
@@ -73,7 +73,7 @@
 #define CREATE_PROJECT_TABLE "CREATE TABLE Projects"\
     "("\
     "id BLOB PRIMARY KEY,"\
-    "title TEXT,"\
+    "title TEXT COLLATE NOCASE,"\
     "descr TEXT,"\
     "company_id BLOB,"\
     "state INTEGER"\
@@ -108,6 +108,8 @@ void scriba_sqlite_cleanup();
 static int parse_param_list(struct ScribaDBParamList *pl);
 // create new database; returns 0 on success, 1 on failure
 static int create_database();
+// insert % at the beginning and at the end of search string for LIKE operator
+static char *str_for_like_op(const char *src);
 
 // create company data structure based on given parameters
 static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
@@ -370,6 +372,15 @@ error:
     return 1;
 }
 
+// insert % at the beginning and at the end of search string for LIKE operator
+static char *str_for_like_op(const char *src)
+{
+    int len = strlen(src) + 3;
+    char *result = (char *)malloc(len); // 2 '%' and terminating 0
+    snprintf(result, len, "%%%s%%", src);
+    return result;
+}
+
 // create company data structure based on given parameters
 static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
                                              const char *jur_name, const char *addr,
@@ -608,17 +619,35 @@ static scriba_list_t *getAllCompanies()
 
 static scriba_list_t *getCompaniesByName(const char *name)
 {
-    return companySearch("SELECT id, name FROM Companies WHERE name=?", name);
+    scriba_list_t *ret;
+    char *search = str_for_like_op(name);
+
+    ret = companySearch("SELECT id, name FROM Companies WHERE name LIKE ?", search);
+    free(search);
+
+    return ret;
 }
 
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name)
 {
-    return companySearch("SELECT id, name FROM Companies WHERE jur_name=?", juridicial_name);
+    scriba_list_t *ret;
+    char *search = str_for_like_op(juridicial_name);
+
+    ret = companySearch("SELECT id, name FROM Companies WHERE jur_name LIKE ?", search);
+    free(search);
+
+    return ret;
 }
 
 static scriba_list_t *getCompaniesByAddress(const char *address)
 {
-    return companySearch("SELECT id, name FROM Companies WHERE address=?", address);
+    scriba_list_t *ret;
+    char *search = str_for_like_op(address);
+
+    ret = companySearch("SELECT id, name FROM Companies WHERE address LIKE ?", search);
+    free(search);
+
+    return ret;
 }
 
 static void addCompany(scriba_id_t id, const char *name, const char *jur_name,

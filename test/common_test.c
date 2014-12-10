@@ -775,6 +775,49 @@ void test_company_search()
     clean_local_db();
 }
 
+void test_ru_company_search()
+{
+    scriba_id_t company1_id;
+    scriba_id_t company2_id;
+
+    scriba_list_t *companies = NULL;
+
+    scriba_id_create(&company1_id);
+    scriba_id_create(&company2_id);
+
+    scriba_addCompanyWithID(company1_id, "Компания№1", "ООО Номер один",
+                            "неизвестно", scriba_inn_from_string("0123456789"), "555",
+                            "test1@test.com");
+    scriba_addCompanyWithID(company2_id, "другая компания", "ОАО рога и копыта",
+                            "адрес", scriba_inn_from_string("0123456789"), "555",
+                            "test2@test.com");
+
+    companies = scriba_getCompaniesByName("комп");
+    CU_ASSERT_FALSE(scriba_list_is_empty(companies));
+    CU_ASSERT_PTR_NOT_NULL(companies->next);
+    CU_ASSERT(scriba_id_compare(&company1_id, &(companies->id)));
+    CU_ASSERT(scriba_id_compare(&company2_id, &(companies->next->id)));
+
+    scriba_list_delete(companies);
+    companies = NULL;
+
+    companies = scriba_getCompaniesByJurName("ОДИН");
+    CU_ASSERT_FALSE(scriba_list_is_empty(companies));
+    CU_ASSERT_PTR_NULL(companies->next);
+    CU_ASSERT(scriba_id_compare(&company1_id, &(companies->id)));
+
+    scriba_list_delete(companies);
+    companies = NULL;
+
+    companies = scriba_getCompaniesByAddress("Адр");
+    CU_ASSERT_FALSE(scriba_list_is_empty(companies));
+    CU_ASSERT_PTR_NULL(companies->next);
+    CU_ASSERT(scriba_id_compare(&company2_id, &(companies->id)));
+
+    scriba_list_delete(companies);
+    companies = NULL;
+}
+
 // remove all data from the local DB
 void clean_local_db()
 {

@@ -27,6 +27,7 @@ void test_project();
 void test_event();
 void test_create_with_id();
 void test_company_search();
+void test_ru_company_search();
 void clean_local_db();
 
 #endif // SCRIBA_COMMON_TEST_H
