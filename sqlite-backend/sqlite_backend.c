@@ -145,6 +145,7 @@ static scriba_list_t *eventSearch(const char *query, scriba_id_t id);
 // event handling interface functions
 static struct ScribaEvent *getEvent(scriba_id_t id);
 static scriba_list_t *getAllEvents();
+static scriba_list_t *getEventsByDescr(const char *descr);
 static scriba_list_t *getEventsByCompany(scriba_id_t id);
 static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
@@ -245,6 +246,7 @@ int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTb
     fTbl->removeCompany = removeCompany;
     fTbl->getEvent = getEvent;
     fTbl->getAllEvents = getAllEvents;
+    fTbl->getEventsByDescr = getEventsByDescr;
     fTbl->getEventsByCompany = getEventsByCompany;
     fTbl->getEventsByPOC = getEventsByPOC;
     fTbl->getEventsByProject = getEventsByProject;
@@ -375,8 +377,13 @@ error:
 // insert % at the beginning and at the end of search string for LIKE operator
 static char *str_for_like_op(const char *src)
 {
-    int len = strlen(src) + 3;
-    char *result = (char *)malloc(len); // 2 '%' and terminating 0
+    if (src == NULL)
+    {
+        return NULL;
+    }
+
+    int len = strlen(src) + 3; // 2 '%' and terminating 0
+    char *result = (char *)malloc(len);
     snprintf(result, len, "%%%s%%", src);
     return result;
 }
@@ -1136,6 +1143,80 @@ exit:
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
+    }
+    return events;
+}
+
+static scriba_list_t *getEventsByDescr(const char *descr)
+{
+    scriba_list_t *events = scriba_list_init();
+    char *search = str_for_like_op(descr);
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "SELECT id,descr FROM Events WHERE descr LIKE ?";
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_text(stmt, 1, search, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query and retrieve results
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
+            const char *descr = sqlite3_column_text(stmt, 1);
+            int len = strlen(descr);
+            if (len > 0)
+            {
+                char *event_descr = (char *)malloc(len + 1);
+                strcpy(event_descr, descr);
+                scriba_list_add(events, id, event_descr);
+                free(event_descr);
+            }
+            else
+            {
+                scriba_list_add(events, id, NULL);
+            }
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    if (search != NULL)
+    {
+        free(search);
     }
     return events;
 }

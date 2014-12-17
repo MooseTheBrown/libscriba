@@ -37,6 +37,12 @@ scriba_list_t *scriba_getAllEvents()
     return (fTbl->getAllEvents());
 }
 
+// search events by description
+scriba_list_t *scriba_getEventsByDescr(const char *descr)
+{
+    return (fTbl->getEventsByDescr(descr));
+}
+
 // get all events associated with given company
 scriba_list_t *scriba_getEventsByCompany(scriba_id_t id)
 {

@@ -62,6 +62,8 @@ struct ScribaEvent
 struct ScribaEvent *scriba_getEvent(scriba_id_t id);
 // get all events
 scriba_list_t *scriba_getAllEvents();
+// search events by description
+scriba_list_t *scriba_getEventsByDescr(const char *descr);
 // get all events associated with given company
 scriba_list_t *scriba_getEventsByCompany(scriba_id_t id);
 // get all events associated with given person

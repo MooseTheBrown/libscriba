@@ -46,6 +46,7 @@ static void free_company_data(struct ScribaCompany *company);
 
 static struct ScribaEvent *getEvent(scriba_id_t id);
 static scriba_list_t *getAllEvents();
+static scriba_list_t *getEventsByDescr(const char *descr);
 static scriba_list_t *getEventsByCompany(scriba_id_t id);
 static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
@@ -151,6 +152,7 @@ static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncT
     fTbl->removeCompany = removeCompany;
     fTbl->getEvent = getEvent;
     fTbl->getAllEvents = getAllEvents;
+    fTbl->getEventsByDescr = getEventsByDescr;
     fTbl->getEventsByCompany = getEventsByCompany;
     fTbl->getEventsByPOC = getEventsByPOC;
     fTbl->getEventsByProject = getEventsByProject;
@@ -186,7 +188,6 @@ static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncT
 
 static struct ScribaCompany *getCompany(scriba_id_t id)
 {
-    int i;
     struct ScribaCompany *ret = NULL;
     struct MockCompanyList *company = mockData.companies;
 
@@ -244,7 +245,6 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
 
 static scriba_list_t *getAllCompanies()
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockCompanyList *company = mockData.companies;
 
@@ -259,7 +259,6 @@ static scriba_list_t *getAllCompanies()
 
 static scriba_list_t *getCompaniesByName(const char *name)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockCompanyList *company = mockData.companies;
     char *search_lower = str_tolower(name);
@@ -283,7 +282,6 @@ static scriba_list_t *getCompaniesByName(const char *name)
 
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockCompanyList *company = mockData.companies;
     char *search_lower = str_tolower(juridicial_name);
@@ -306,7 +304,6 @@ static scriba_list_t *getCompaniesByJurName(const char *juridicial_name)
 
 static scriba_list_t *getCompaniesByAddress(const char *address)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockCompanyList *company = mockData.companies;
     char *search_lower = str_tolower(address);
@@ -394,7 +391,6 @@ static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
 
 static void updateCompany(const struct ScribaCompany *company)
 {
-    int i;
     struct MockCompanyList *cur_company = mockData.companies;
 
     while (cur_company != NULL)
@@ -414,7 +410,6 @@ static void updateCompany(const struct ScribaCompany *company)
 
 static void removeCompany(scriba_id_t id)
 {
-    int i;
     struct MockCompanyList *company = mockData.companies;
     struct MockCompanyList *prev = NULL;
 
@@ -473,7 +468,6 @@ static void free_company_data(struct ScribaCompany *company)
 
 static struct ScribaEvent *getEvent(scriba_id_t id)
 {
-    int i;
     struct ScribaEvent *ret = NULL;
     struct MockEventList *event = mockData.events;
 
@@ -493,7 +487,6 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
 
 static scriba_list_t *getAllEvents()
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockEventList *event = mockData.events;
 
@@ -506,9 +499,29 @@ static scriba_list_t *getAllEvents()
     return list;
 }
 
+static scriba_list_t *getEventsByDescr(const char *descr)
+{
+    scriba_list_t *list = scriba_list_init();
+    struct MockEventList *event = mockData.events;
+    char *search_lower = str_tolower(descr);
+
+    while (event != NULL)
+    {
+        char *descr_lower = str_tolower(event->data->descr);
+        if (strstr(descr_lower, search_lower) != NULL)
+        {
+            scriba_list_add(list, event->data->id, event->data->descr);
+        }
+        event = event->next;
+        free(descr_lower);
+    }
+
+    free(search_lower);
+    return list;
+}
+
 static scriba_list_t *getEventsByCompany(scriba_id_t id)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockEventList *event = mockData.events;
 
@@ -527,7 +540,6 @@ static scriba_list_t *getEventsByCompany(scriba_id_t id)
 
 static scriba_list_t *getEventsByPOC(scriba_id_t id)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockEventList *event = mockData.events;
 
@@ -546,7 +558,6 @@ static scriba_list_t *getEventsByPOC(scriba_id_t id)
 
 static scriba_list_t *getEventsByProject(scriba_id_t id)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockEventList *event = mockData.events;
 
@@ -617,7 +628,6 @@ static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, 
 
 static void updateEvent(const struct ScribaEvent *event)
 {
-    int i;
     struct MockEventList *cur_event = mockData.events;
 
     while (cur_event != NULL)
@@ -637,7 +647,6 @@ static void updateEvent(const struct ScribaEvent *event)
 
 static void removeEvent(scriba_id_t id)
 {
-    int i;
     struct MockEventList *event = mockData.events;
     struct MockEventList *prev = NULL;
 
@@ -682,7 +691,6 @@ static void free_event_data(struct ScribaEvent *event)
 
 static struct ScribaPoc *getPOC(scriba_id_t id)
 {
-    int i;
     struct ScribaPoc *ret = NULL;
     struct MockPOCList *poc = mockData.people;
 
@@ -702,7 +710,6 @@ static struct ScribaPoc *getPOC(scriba_id_t id)
 
 static scriba_list_t *getAllPeople()
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
 
@@ -719,7 +726,6 @@ static scriba_list_t *getPOCByName(const char *firstname,
                                    const char *secondname,
                                    const char *lastname)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
 
@@ -752,7 +758,6 @@ static scriba_list_t *getPOCByName(const char *firstname,
 
 static scriba_list_t *getPOCByCompany(scriba_id_t id)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
 
@@ -771,7 +776,6 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id)
 
 static scriba_list_t *getPOCByPosition(const char *position)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
 
@@ -790,7 +794,6 @@ static scriba_list_t *getPOCByPosition(const char *position)
 
 static scriba_list_t *getPOCByPhoneNum(const char *phonenum)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
 
@@ -809,7 +812,6 @@ static scriba_list_t *getPOCByPhoneNum(const char *phonenum)
 
 static scriba_list_t *getPOCByEmail(const char *email)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
 
@@ -905,7 +907,6 @@ static void addPOC(scriba_id_t id, const char *firstname, const char *secondname
 
 static void updatePOC(const struct ScribaPoc *poc)
 {
-    int i;
     struct MockPOCList *cur_poc = mockData.people;
 
     while (cur_poc != NULL)
@@ -925,7 +926,6 @@ static void updatePOC(const struct ScribaPoc *poc)
 
 static void removePOC(scriba_id_t id)
 {
-    int i;
     struct MockPOCList *poc = mockData.people;
     struct MockPOCList *prev = NULL;
 
@@ -994,7 +994,6 @@ static void free_poc_data(struct ScribaPoc *poc)
 
 static struct ScribaProject *getProject(scriba_id_t id)
 {
-    int i;
     struct ScribaProject *ret = NULL;
     struct MockProjectList *project = mockData.projects;
 
@@ -1014,7 +1013,6 @@ static struct ScribaProject *getProject(scriba_id_t id)
 
 static scriba_list_t *getAllProjects()
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockProjectList *project = mockData.projects;
 
@@ -1029,7 +1027,6 @@ static scriba_list_t *getAllProjects()
 
 static scriba_list_t *getProjectsByCompany(scriba_id_t id)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockProjectList *project = mockData.projects;
 
@@ -1048,7 +1045,6 @@ static scriba_list_t *getProjectsByCompany(scriba_id_t id)
 
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state)
 {
-    int i;
     scriba_list_t *list = scriba_list_init();
     struct MockProjectList *project = mockData.projects;
 
@@ -1112,7 +1108,6 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
 
 static void updateProject(const struct ScribaProject *project)
 {
-    int i;
     struct MockProjectList *cur_project = mockData.projects;
 
     while (cur_project != NULL)
@@ -1132,7 +1127,6 @@ static void updateProject(const struct ScribaProject *project)
 
 static void removeProject(scriba_id_t id)
 {
-    int i;
     struct MockProjectList *project = mockData.projects;
     struct MockProjectList *prev = NULL;
 

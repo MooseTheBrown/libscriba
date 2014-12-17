@@ -816,6 +816,102 @@ void test_ru_company_search()
 
     scriba_list_delete(companies);
     companies = NULL;
+
+    clean_local_db();
+}
+
+void test_event_search()
+{
+    scriba_id_t event1_id;
+    scriba_id_t event2_id;
+    scriba_id_t event3_id;
+    scriba_id_t company_id;
+    scriba_id_t poc_id;
+    scriba_id_t project_id;
+    scriba_list_t *events = NULL;
+
+    scriba_id_create(&event1_id);
+    scriba_id_create(&event2_id);
+    scriba_id_create(&event3_id);
+    scriba_id_create(&company_id);
+    scriba_id_create(&poc_id);
+    scriba_id_create(&project_id);
+
+    scriba_addEventWithID(event1_id, "Eating chocolate", company_id, poc_id,
+                          project_id, EVENT_TYPE_TASK, "Chocolate is gone",
+                          0, EVENT_STATE_COMPLETED);
+    scriba_addEventWithID(event2_id, "Buying more chocolate", company_id, poc_id,
+                          project_id, EVENT_TYPE_TASK, "",
+                          0, EVENT_STATE_SCHEDULED);
+    scriba_addEventWithID(event3_id, "Calling doctor", company_id, poc_id,
+                          project_id, EVENT_TYPE_CALL, "",
+                          0, EVENT_STATE_SCHEDULED);
+
+    events = scriba_getEventsByDescr("choc");
+    CU_ASSERT_FALSE(scriba_list_is_empty(events));
+    CU_ASSERT_PTR_NOT_NULL(events->next);
+    CU_ASSERT(scriba_id_compare(&event1_id, &(events->id)));
+    CU_ASSERT(scriba_id_compare(&event2_id, &(events->next->id)));
+
+    scriba_list_delete(events);
+    events = NULL;
+
+    events = scriba_getEventsByDescr("call");
+    CU_ASSERT_FALSE(scriba_list_is_empty(events));
+    CU_ASSERT_PTR_NULL(events->next);
+    CU_ASSERT(scriba_id_compare(&event3_id, &(events->id)));
+
+    scriba_list_delete(events);
+    events = NULL;
+
+    clean_local_db();
+}
+
+void test_ru_event_search()
+{
+    scriba_id_t event1_id;
+    scriba_id_t event2_id;
+    scriba_id_t event3_id;
+    scriba_id_t company_id;
+    scriba_id_t poc_id;
+    scriba_id_t project_id;
+    scriba_list_t *events = NULL;
+
+    scriba_id_create(&event1_id);
+    scriba_id_create(&event2_id);
+    scriba_id_create(&event3_id);
+    scriba_id_create(&company_id);
+    scriba_id_create(&poc_id);
+    scriba_id_create(&project_id);
+
+    scriba_addEventWithID(event1_id, "Поедание шоколада", company_id, poc_id,
+                          project_id, EVENT_TYPE_TASK, "Шоколад закончился",
+                          0, EVENT_STATE_COMPLETED);
+    scriba_addEventWithID(event2_id, "Покупка шоколада", company_id, poc_id,
+                          project_id, EVENT_TYPE_TASK, "",
+                          0, EVENT_STATE_SCHEDULED);
+    scriba_addEventWithID(event3_id, "Звонок доктору", company_id, poc_id,
+                          project_id, EVENT_TYPE_CALL, "",
+                          0, EVENT_STATE_SCHEDULED);
+
+    events = scriba_getEventsByDescr("шок");
+    CU_ASSERT_FALSE(scriba_list_is_empty(events));
+    CU_ASSERT_PTR_NOT_NULL(events->next);
+    CU_ASSERT(scriba_id_compare(&event1_id, &(events->id)));
+    CU_ASSERT(scriba_id_compare(&event2_id, &(events->next->id)));
+
+    scriba_list_delete(events);
+    events = NULL;
+
+    events = scriba_getEventsByDescr("звон");
+    CU_ASSERT_FALSE(scriba_list_is_empty(events));
+    CU_ASSERT_PTR_NULL(events->next);
+    CU_ASSERT(scriba_id_compare(&event3_id, &(events->id)));
+
+    scriba_list_delete(events);
+    events = NULL;
+
+    clean_local_db();
 }
 
 // remove all data from the local DB

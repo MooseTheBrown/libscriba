@@ -69,6 +69,7 @@ struct ScribaDBFuncTbl
     // event-related functions
     struct ScribaEvent* (*getEvent)(scriba_id_t);
     scriba_list_t* (*getAllEvents)(void);
+    scriba_list_t* (*getEventsByDescr)(const char *);
     scriba_list_t* (*getEventsByCompany)(scriba_id_t);
     scriba_list_t* (*getEventsByPOC)(scriba_id_t);
     scriba_list_t* (*getEventsByProject)(scriba_id_t);
