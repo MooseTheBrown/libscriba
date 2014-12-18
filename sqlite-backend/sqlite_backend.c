@@ -167,15 +167,15 @@ static char *combine_poc_names(const char *firstname,
                                const char *secondname,
                                const char *lastname);
 
+// execute prepared SQLite query and append results to given list
+static void pocExecuteQuery(sqlite3_stmt *stmt, scriba_list_t *list);
 // POC search by string routine
 static scriba_list_t *pocSearchByStr(const char *query, const char *str);
 
 // POC handling interface functions
 static struct ScribaPoc *getPOC(scriba_id_t id);
 static scriba_list_t *getAllPeople();
-static scriba_list_t *getPOCByName(const char *firstname,
-                                   const char *secondname,
-                                   const char *lastname);
+static scriba_list_t *getPOCByName(const char *name);
 static scriba_list_t *getPOCByCompany(scriba_id_t id);
 static scriba_list_t *getPOCByPosition(const char *position);
 static scriba_list_t *getPOCByPhoneNum(const char *phonenum);
@@ -1608,6 +1608,41 @@ static char *combine_poc_names(const char *firstname,
     return result;
 }
 
+// execute prepared SQLite query and append results to given list
+static void pocExecuteQuery(sqlite3_stmt *stmt, scriba_list_t *list)
+{
+    if ((stmt == NULL) || (list == NULL))
+    {
+        return;
+    }
+
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
+            const char *firstname = sqlite3_column_text(stmt, 1);
+            const char *secondname = sqlite3_column_text(stmt, 2);
+            const char *lastname = sqlite3_column_text(stmt, 3);
+            char *name = combine_poc_names(firstname, secondname, lastname);
+            scriba_list_add(list, id, name);
+            free(name);
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
 // POC search by string routine
 static scriba_list_t *pocSearchByStr(const char *query, const char *str)
 {
@@ -1632,37 +1667,7 @@ static scriba_list_t *pocSearchByStr(const char *query, const char *str)
         }
     }
 
-    // execute query
-    while (1)
-    {
-        int ret = sqlite3_step(stmt);
-        if (ret == SQLITE_BUSY)
-        {
-            // retry
-            continue;
-        }
-        else if (ret == SQLITE_ROW)
-        {
-            // we have the data
-            scriba_id_t id;
-            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
-            const char *firstname = sqlite3_column_text(stmt, 1);
-            const char *secondname = sqlite3_column_text(stmt, 2);
-            const char *lastname = sqlite3_column_text(stmt, 3);
-            char *name = combine_poc_names(firstname, secondname, lastname);
-            scriba_list_add(people, id, name);
-            free(name);
-        }
-        else if (ret == SQLITE_DONE)
-        {
-            break;
-        }
-        else
-        {
-            // this should not happen
-            goto exit;
-        }
-    }
+    pocExecuteQuery(stmt, people);
 
 exit:
     if (stmt != NULL)
@@ -1776,37 +1781,7 @@ static scriba_list_t *getAllPeople()
         goto exit;
     }
 
-    // execute query
-    while (1)
-    {
-        int ret = sqlite3_step(stmt);
-        if (ret == SQLITE_BUSY)
-        {
-            // retry
-            continue;
-        }
-        else if (ret == SQLITE_ROW)
-        {
-            // we have the data
-            scriba_id_t id;
-            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
-            const char *firstname = sqlite3_column_text(stmt, 1);
-            const char *secondname = sqlite3_column_text(stmt, 2);
-            const char *lastname = sqlite3_column_text(stmt, 3);
-            char *name = combine_poc_names(firstname, secondname, lastname);
-            scriba_list_add(people, id, name);
-            free(name);
-        }
-        else if (ret == SQLITE_DONE)
-        {
-            break;
-        }
-        else
-        {
-            // this should not happen
-            goto exit;
-        }
-    }
+    pocExecuteQuery(stmt, people);
 
 exit:
     if (stmt != NULL)
@@ -1816,128 +1791,76 @@ exit:
     return people;
 }
 
-static scriba_list_t *getPOCByName(const char *firstname,
-                                   const char *secondname,
-                                   const char *lastname)
+static scriba_list_t *getPOCByName(const char *name)
 {
     scriba_list_t *people = scriba_list_init();
-    sqlite3_stmt *stmt = NULL;
-    char query[1024] = "SELECT id,firstname,secondname,lastname FROM People WHERE";
-    int secondname_pos = 2;
-    int lastname_pos = 3;
-    int max_len = 1024 - strlen(query) - 1;
+    char *search = str_for_like_op(name);
+    sqlite3_stmt *stmt_first = NULL;
+    sqlite3_stmt *stmt_second = NULL;
+    sqlite3_stmt *stmt_last = NULL;
+    char query_first[] =
+        "SELECT id,firstname,secondname,lastname FROM People WHERE firstname LIKE ?";
+    char query_second[] =
+        "SELECT id,firstname,secondname,lastname FROM People WHERE secondname LIKE ?";
+    char query_last[] =
+        "SELECT id,firstname,secondname,lastname FROM People WHERE lastname LIKE ?";
 
     if (data == NULL)
     {
         goto exit;
     }
-    if ((firstname == NULL) && (secondname == NULL) && (lastname == NULL))
+    if (name == NULL)
     {
         goto exit;
     }
 
-    // prepare query
-    if (firstname != NULL)
-    {
-        strncat(query, " firstname=?", max_len);
-    }
-    else
-    {
-        // firstname is not provided, adjust second and last names' position in query
-        secondname_pos--;
-        lastname_pos--;
-    }
-    if (secondname != NULL)
-    {
-        if (secondname_pos == 1)
-        {
-            strncat(query, " secondname=?", max_len);
-        }
-        else
-        {
-            strncat(query, " AND secondname=?", max_len);
-        }
-    }
-    else
-    {
-        lastname_pos--;
-    }
-
-    if (lastname != NULL)
-    {
-        if (lastname_pos == 1)
-        {
-            strncat(query, " lastname=?", max_len);
-        }
-        else
-        {
-            strncat(query, " AND lastname=?", max_len);
-        }
-    }
-
-    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    // prepare queries for first, second and last name search
+    if (sqlite3_prepare_v2(data->db, query_first, -1, &stmt_first, NULL) != SQLITE_OK)
     {
         goto exit;
     }
 
-    if (firstname != NULL)
+    if (sqlite3_bind_text(stmt_first, 1, search, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
-        if (sqlite3_bind_text(stmt, 1, firstname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
-        {
-            goto exit;
-        }
-    }
-    if (secondname != NULL)
-    {
-        if (sqlite3_bind_text(stmt, secondname_pos, secondname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
-        {
-            goto exit;
-        }
-    }
-    if (lastname != NULL)
-    {
-        if (sqlite3_bind_text(stmt, lastname_pos, lastname, -1, SQLITE_TRANSIENT) != SQLITE_OK)
-        {
-            goto exit;
-        }
+        goto exit;
     }
 
-    // execute query
-    while (1)
+    if (sqlite3_prepare_v2(data->db, query_second, -1, &stmt_second, NULL) != SQLITE_OK)
     {
-        int ret = sqlite3_step(stmt);
-        if (ret == SQLITE_BUSY)
-        {
-            // retry
-            continue;
-        }
-        else if (ret == SQLITE_ROW)
-        {
-            // we have the data
-            scriba_id_t id;
-            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
-            const char *firstname = sqlite3_column_text(stmt, 1);
-            const char *secondname = sqlite3_column_text(stmt, 2);
-            const char *lastname = sqlite3_column_text(stmt, 3);
-            char *name = combine_poc_names(firstname, secondname, lastname);
-            scriba_list_add(people, id, name);
-            free(name);
-        }
-        else if (ret == SQLITE_DONE)
-        {
-            break;
-        }
-        else
-        {
-            // this should not happen
-            goto exit;
-        }
+        goto exit;
     }
+
+    if (sqlite3_bind_text(stmt_second, 1, search, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query_last, -1, &stmt_last, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_text(stmt_last, 1, search, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    pocExecuteQuery(stmt_first, people);
+    pocExecuteQuery(stmt_second, people);
+    pocExecuteQuery(stmt_last, people);
 
 exit:
-    if (stmt != NULL)
+    if (stmt_first != NULL)
     {
-        sqlite3_finalize(stmt);
+        sqlite3_finalize(stmt_first);
+    }
+    if (stmt_second != NULL)
+    {
+        sqlite3_finalize(stmt_second);
+    }
+    if (stmt_last != NULL)
+    {
+        sqlite3_finalize(stmt_last);
     }
     return people;
 }
@@ -1969,37 +1892,7 @@ static scriba_list_t *getPOCByCompany(scriba_id_t id)
         goto exit;
     }
 
-    // execute query
-    while (1)
-    {
-        int ret = sqlite3_step(stmt);
-        if (ret == SQLITE_BUSY)
-        {
-            // retry
-            continue;
-        }
-        else if (ret == SQLITE_ROW)
-        {
-            // we have the data
-            scriba_id_t id;
-            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
-            const char *firstname = sqlite3_column_text(stmt, 1);
-            const char *secondname = sqlite3_column_text(stmt, 2);
-            const char *lastname = sqlite3_column_text(stmt, 3);
-            char *name = combine_poc_names(firstname, secondname, lastname);
-            scriba_list_add(people, id, name);
-            free(name);
-        }
-        else if (ret == SQLITE_DONE)
-        {
-            break;
-        }
-        else
-        {
-            // this should not happen
-            goto exit;
-        }
-    }
+    pocExecuteQuery(stmt, people);
 
 exit:
     if (stmt != NULL)

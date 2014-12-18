@@ -202,7 +202,7 @@ void test_poc()
     scriba_addPOC("Mikhail", "Alekseevich", "Sapozhnikov",
                   "1111", "2222", "mikhail@test1.com",
                   "SW Engineer", companies->id);
-    people = scriba_getPOCByName("Mikhail", "Alekseevich", "Sapozhnikov");
+    people = scriba_getPOCByName("Mikhail");
     CU_ASSERT_FALSE(scriba_list_is_empty(people));
     CU_ASSERT(scriba_list_is_empty(people->next));
     poc1 = scriba_getPOC(people->id);
@@ -222,7 +222,7 @@ void test_poc()
     scriba_addPOC("Alexey", "Vladimirovich", "Sapozhnikov",
                   "3333", "4444", "alexey@test2.com",
                   "Maritime Inspector", companies->next->id);
-    people = scriba_getPOCByName("Alexey", NULL, NULL);
+    people = scriba_getPOCByName("Alexey");
     CU_ASSERT_FALSE(scriba_list_is_empty(people));
     CU_ASSERT(scriba_list_is_empty(people->next));
     poc2 = scriba_getPOC(people->id);
@@ -242,7 +242,7 @@ void test_poc()
     scriba_addPOC("Elena", "Yurievna", "Sapozhnikova",
                   "5555", "6666", "elena@test2.com",
                   "Accountant", companies->next->id);
-    people = scriba_getPOCByName(NULL, "Yurievna", NULL);
+    people = scriba_getPOCByName("Yurievna");
     CU_ASSERT_FALSE(scriba_list_is_empty(people));
     CU_ASSERT(scriba_list_is_empty(people->next));
     poc3 = scriba_getPOC(people->id);
@@ -256,14 +256,6 @@ void test_poc()
     CU_ASSERT_STRING_EQUAL(poc3->email, "elena@test2.com");
     CU_ASSERT_STRING_EQUAL(poc3->position, "Accountant");
     CU_ASSERT(scriba_id_compare(&(poc3->company_id), &(companies->next->id)));
-
-    scriba_list_delete(people);
-
-    people = scriba_getPOCByName(NULL, NULL, "Sapozhnikov");
-    CU_ASSERT_FALSE(scriba_list_is_empty(people));
-    CU_ASSERT_FALSE(scriba_list_is_empty(people->next));
-    CU_ASSERT(scriba_id_compare(&(people->id), &(poc1->id)));
-    CU_ASSERT(scriba_id_compare(&(people->next->id), &(poc2->id)));
 
     scriba_list_delete(people);
 
@@ -365,7 +357,7 @@ void test_poc()
     // remove one poc and verify that it is indeed removed
     scriba_removePOC(poc1->id);
     people = NULL;
-    people = scriba_getPOCByName("Mikhail", "Alekseevich", "Sapozhnikov");
+    people = scriba_getPOCByName("Mikhail");
     CU_ASSERT(scriba_list_is_empty(people));
     scriba_list_delete(people);
 
@@ -516,8 +508,8 @@ void test_event()
                   "333", "444", "andrey@test2.com",
                   "Salesperson", companies->next->id);
 
-    people1 = scriba_getPOCByName(NULL, NULL, "Sapozhnikov");
-    people2 = scriba_getPOCByName(NULL, NULL, "Pilyaev");
+    people1 = scriba_getPOCByName("Sapozhnikov");
+    people2 = scriba_getPOCByName("Pilyaev");
 
     scriba_addProject("Test Project #1", "100 bottles of whisky",
                       companies->id, PROJECT_STATE_CONTRACT_SIGNED);
@@ -910,6 +902,115 @@ void test_ru_event_search()
 
     scriba_list_delete(events);
     events = NULL;
+
+    clean_local_db();
+}
+
+void test_poc_search()
+{
+    scriba_id_t poc1_id;
+    scriba_id_t poc2_id;
+    scriba_id_t poc3_id;
+    scriba_id_t company_id;
+    scriba_list_t *people = NULL;
+
+    scriba_id_create(&poc1_id);
+    scriba_id_create(&poc2_id);
+    scriba_id_create(&poc3_id);
+    scriba_id_create(&company_id);
+
+    scriba_addPOCWithID(poc1_id, "Mikhail", "Alekseevich", "Sapozhnikov",
+                        "", "", "", "", company_id);
+    scriba_addPOCWithID(poc2_id, "Kseniia", "Nikolayevna", "Sapozhnikova",
+                        "", "", "", "", company_id);
+    scriba_addPOCWithID(poc3_id, "Andrey", "Gennadyevich", "Pilyaev",
+                        "", "", "", "", company_id);
+
+    people = scriba_getPOCByName("sapozh");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NOT_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc1_id, &(people->id)));
+    CU_ASSERT(scriba_id_compare(&poc2_id, &(people->next->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByName("pil");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc3_id, &(people->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByName("PIL");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc3_id, &(people->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByName("NoSuchPerson");
+    CU_ASSERT(scriba_list_is_empty(people));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    clean_local_db();
+}
+
+void test_ru_poc_search()
+{
+    scriba_id_t poc1_id;
+    scriba_id_t poc2_id;
+    scriba_id_t poc3_id;
+    scriba_id_t company_id;
+    scriba_list_t *people = NULL;
+
+    scriba_id_create(&poc1_id);
+    scriba_id_create(&poc2_id);
+    scriba_id_create(&poc3_id);
+    scriba_id_create(&company_id);
+
+    scriba_addPOCWithID(poc1_id, "Михаил", "Алексеевич", "Сапожников",
+                        "", "", "", "", company_id);
+    scriba_addPOCWithID(poc2_id, "Ксения", "Николаевна", "Сапожникова",
+                        "", "", "", "", company_id);
+    scriba_addPOCWithID(poc3_id, "Андрей", "Геннадиевич", "Пиляев",
+                        "", "", "", "", company_id);
+
+    people = scriba_getPOCByName("сап");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NOT_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc1_id, &(people->id)));
+    CU_ASSERT(scriba_id_compare(&poc2_id, &(people->next->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByName("анд");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc3_id, &(people->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByName("ОЖН");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NOT_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc1_id, &(people->id)));
+    CU_ASSERT(scriba_id_compare(&poc2_id, &(people->next->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByName("неттаких");
+    CU_ASSERT(scriba_list_is_empty(people));
+
+    scriba_list_delete(people);
+    people = NULL;
 
     clean_local_db();
 }

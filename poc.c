@@ -31,12 +31,10 @@ struct ScribaPoc *scriba_getPOC(scriba_id_t id)
     return (fTbl->getPOC(id));
 }
 
-// get all POCs with given name
-scriba_list_t *scriba_getPOCByName(const char *firstname,
-                                   const char *secondname,
-                                   const char *lastname)
+// search people by name
+scriba_list_t *scriba_getPOCByName(const char *name)
 {
-    return (fTbl->getPOCByName(firstname, secondname, lastname));
+    return (fTbl->getPOCByName(name));
 }
 
 // get all people

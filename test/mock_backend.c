@@ -59,9 +59,7 @@ static void free_event_data(struct ScribaEvent *event);
 
 static struct ScribaPoc *getPOC(scriba_id_t id);
 static scriba_list_t *getAllPeople();
-static scriba_list_t *getPOCByName(const char *firstname,
-                                   const char *secondname,
-                                   const char *lastname);
+static scriba_list_t *getPOCByName(const char *name);
 static scriba_list_t *getPOCByCompany(scriba_id_t id);
 static scriba_list_t *getPOCByPosition(const char *position);
 static scriba_list_t *getPOCByPhoneNum(const char *phonenum);
@@ -722,37 +720,33 @@ static scriba_list_t *getAllPeople()
     return list;
 } 
 
-static scriba_list_t *getPOCByName(const char *firstname,
-                                   const char *secondname,
-                                   const char *lastname)
+static scriba_list_t *getPOCByName(const char *name)
 {
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
+    char *search_lower = str_tolower(name);
 
     while (poc != NULL)
     {
         int match = 1;
+        char *firstname_lower = str_tolower(poc->data->firstname);
+        char *secondname_lower = str_tolower(poc->data->secondname);
+        char *lastname_lower = str_tolower(poc->data->lastname);
 
-        if (firstname != NULL)
-        {
-            match &= (strcmp(poc->data->firstname, firstname) == 0);
-        }
-        if (secondname != NULL)
-        {
-            match &= (strcmp(poc->data->secondname, secondname) == 0);
-        }
-        if (lastname != NULL)
-        {
-            match &= (strcmp(poc->data->lastname, lastname) == 0);
-        }
-        if (match)
+        if (((firstname_lower != NULL) && (strstr(firstname_lower, search_lower) != NULL)) ||
+            ((secondname_lower != NULL) && (strstr(secondname_lower, search_lower) != NULL)) ||
+            ((lastname_lower != NULL) && (strstr(lastname_lower, search_lower) != NULL)))
         {
             scriba_list_add(list, poc->data->id, NULL);
         }
 
         poc = poc->next;
+        free(firstname_lower);
+        free(secondname_lower);
+        free(lastname_lower);
     }
 
+    free(search_lower);
     return list;
 }
 

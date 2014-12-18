@@ -45,7 +45,7 @@ struct ScribaDBFuncTbl
     // poc-related functions
     struct ScribaPoc* (*getPOC)(scriba_id_t);
     scriba_list_t* (*getAllPeople)(void);
-    scriba_list_t* (*getPOCByName)(const char *, const char *, const char *);
+    scriba_list_t* (*getPOCByName)(const char *);
     scriba_list_t* (*getPOCByCompany)(scriba_id_t);
     scriba_list_t* (*getPOCByPosition)(const char *);
     scriba_list_t* (*getPOCByPhoneNum)(const char *);

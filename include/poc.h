@@ -44,10 +44,8 @@ struct ScribaPoc
 
 // get POC by id
 struct ScribaPoc *scriba_getPOC(scriba_id_t id);
-// get all people with given name
-scriba_list_t *scriba_getPOCByName(const char *firstname,
-                                   const char *secondname,
-                                   const char *lastname);
+// search people by name
+scriba_list_t *scriba_getPOCByName(const char *name);
 // get all people
 scriba_list_t *scriba_getAllPeople();
 // get all people working in given company
