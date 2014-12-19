@@ -37,6 +37,12 @@ scriba_list_t *scriba_getAllProjects()
     return (fTbl->getAllProjects());
 }
 
+// search projects by title
+scriba_list_t *scriba_getProjectsByTitle(const char *title)
+{
+    return (fTbl->getProjectsByTitle(title));
+}
+
 // get projects associated with given company
 scriba_list_t *scriba_getProjectsByCompany(scriba_id_t id)
 {

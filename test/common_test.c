@@ -1015,6 +1015,97 @@ void test_ru_poc_search()
     clean_local_db();
 }
 
+void test_project_search()
+{
+    scriba_id_t proj1_id;
+    scriba_id_t proj2_id;
+    scriba_id_t proj3_id;
+    scriba_id_t company_id;
+    scriba_list_t *projects = NULL;
+
+    scriba_id_create(&proj1_id);
+    scriba_id_create(&proj2_id);
+    scriba_id_create(&proj3_id);
+    scriba_id_create(&company_id);
+
+    scriba_addProjectWithID(proj1_id, "Shipbuilding", "",
+                            company_id, PROJECT_STATE_INITIAL);
+    scriba_addProjectWithID(proj2_id, "Looking at ships", "",
+                            company_id, PROJECT_STATE_INITIAL);
+    scriba_addProjectWithID(proj3_id, "Fishing", "",
+                            company_id, PROJECT_STATE_INITIAL);
+
+    projects = scriba_getProjectsByTitle("ship");
+    CU_ASSERT_FALSE(scriba_list_is_empty(projects));
+    CU_ASSERT_PTR_NOT_NULL(projects->next);
+    CU_ASSERT(scriba_id_compare(&proj1_id, &(projects->id)));
+    CU_ASSERT(scriba_id_compare(&proj2_id, &(projects->next->id)));
+
+    scriba_list_delete(projects);
+    projects = NULL;
+
+    projects = scriba_getProjectsByTitle("FISH");
+    CU_ASSERT_FALSE(scriba_list_is_empty(projects));
+    CU_ASSERT_PTR_NULL(projects->next);
+    CU_ASSERT(scriba_id_compare(&proj3_id, &(projects->id)));
+
+    scriba_list_delete(projects);
+    projects = NULL;
+
+    projects = scriba_getProjectsByTitle("ing");
+    CU_ASSERT_FALSE(scriba_list_is_empty(projects));
+    CU_ASSERT_PTR_NOT_NULL(projects->next);
+    CU_ASSERT_PTR_NOT_NULL(projects->next->next);
+    CU_ASSERT(scriba_id_compare(&proj1_id, &(projects->id)));
+    CU_ASSERT(scriba_id_compare(&proj2_id, &(projects->next->id)));
+    CU_ASSERT(scriba_id_compare(&proj3_id, &(projects->next->next->id)));
+
+    scriba_list_delete(projects);
+    projects = NULL;
+
+    clean_local_db();
+}
+
+void test_ru_project_search()
+{
+    scriba_id_t proj1_id;
+    scriba_id_t proj2_id;
+    scriba_id_t proj3_id;
+    scriba_id_t company_id;
+    scriba_list_t *projects = NULL;
+
+    scriba_id_create(&proj1_id);
+    scriba_id_create(&proj2_id);
+    scriba_id_create(&proj3_id);
+    scriba_id_create(&company_id);
+
+    scriba_addProjectWithID(proj1_id, "Кораблестроение", "",
+                            company_id, PROJECT_STATE_INITIAL);
+    scriba_addProjectWithID(proj2_id, "Глазеем на корабли", "",
+                            company_id, PROJECT_STATE_INITIAL);
+    scriba_addProjectWithID(proj3_id, "Рыбалка", "",
+                            company_id, PROJECT_STATE_INITIAL);
+
+    projects = scriba_getProjectsByTitle("корабл");
+    CU_ASSERT_FALSE(scriba_list_is_empty(projects));
+    CU_ASSERT_PTR_NOT_NULL(projects->next);
+    CU_ASSERT(scriba_id_compare(&proj1_id, &(projects->id)));
+    CU_ASSERT(scriba_id_compare(&proj2_id, &(projects->next->id)));
+
+    scriba_list_delete(projects);
+    projects = NULL;
+
+    projects = scriba_getProjectsByTitle("РЫБ");
+    CU_ASSERT_FALSE(scriba_list_is_empty(projects));
+    CU_ASSERT_PTR_NULL(projects->next);
+    CU_ASSERT(scriba_id_compare(&proj3_id, &(projects->id)));
+
+    scriba_list_delete(projects);
+    projects = NULL;
+
+    clean_local_db();
+}
+
 // remove all data from the local DB
 void clean_local_db()
 {

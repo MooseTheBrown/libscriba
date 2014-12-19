@@ -32,6 +32,8 @@ void test_event_search();
 void test_ru_event_search();
 void test_poc_search();
 void test_ru_poc_search();
+void test_project_search();
+void test_ru_project_search();
 void clean_local_db();
 
 #endif // SCRIBA_COMMON_TEST_H

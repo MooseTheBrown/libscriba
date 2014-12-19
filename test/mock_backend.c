@@ -73,6 +73,7 @@ static void free_poc_data(struct ScribaPoc *poc);
 
 static struct ScribaProject *getProject(scriba_id_t id);
 static scriba_list_t *getAllProjects();
+static scriba_list_t *getProjectsByTitle(const char *title);
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
 static void addProject(scriba_id_t id, const char *title, const char *descr,
@@ -169,6 +170,7 @@ static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncT
     fTbl->removePOC = removePOC;
     fTbl->getProject = getProject;
     fTbl->getAllProjects = getAllProjects;
+    fTbl->getProjectsByTitle = getProjectsByTitle;
     fTbl->getProjectsByCompany = getProjectsByCompany;
     fTbl->getProjectsByState = getProjectsByState;
     fTbl->addProject = addProject;
@@ -1012,10 +1014,32 @@ static scriba_list_t *getAllProjects()
 
     while (project != NULL)
     {
-        scriba_list_add(list, project->data->id, project->data->title);
+        scriba_list_add(list, project->data->id, NULL);
         project = project->next;
     }
 
+    return list;
+}
+
+static scriba_list_t *getProjectsByTitle(const char *title)
+{
+    scriba_list_t *list = scriba_list_init();
+    struct MockProjectList *project = mockData.projects;
+    char *search_lower = str_tolower(title);
+
+    while (project != NULL)
+    {
+        char *title_lower = str_tolower(project->data->title);
+        if (strstr(title_lower, search_lower) != NULL)
+        {
+            scriba_list_add(list, project->data->id, NULL);
+        }
+
+        project = project->next;
+        free(title_lower);
+    }
+
+    free(search_lower);
     return list;
 }
 

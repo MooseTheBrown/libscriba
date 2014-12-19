@@ -56,6 +56,7 @@ int main()
     CU_add_test(frontend_test_suite, "Frontend company search test", test_company_search);
     CU_add_test(frontend_test_suite, "Frontend event search test", test_event_search);
     CU_add_test(frontend_test_suite, "Frontend poc search test", test_poc_search);
+    //CU_add_test(frontend_test_suite, "Frontend project search test", test_project_search);
 
     /* SQLite backend test suite */
     sqlite_backend_test_suite = CU_add_suite(SQLITE_BACKEND_TEST_NAME,
@@ -92,6 +93,12 @@ int main()
     CU_add_test(sqlite_backend_test_suite,
                 "SQLite backend poc search test in Russian",
                 test_ru_poc_search);
+    CU_add_test(sqlite_backend_test_suite,
+                "SQLite backend project search test",
+                test_project_search);
+    CU_add_test(sqlite_backend_test_suite,
+                "SQLite backend project search test in Russian",
+                test_ru_project_search);
 
     /* Serializer test suite */
     serializer_test_suite = CU_add_suite(SERIALIZER_TEST_NAME,

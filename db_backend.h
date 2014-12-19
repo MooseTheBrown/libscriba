@@ -59,6 +59,7 @@ struct ScribaDBFuncTbl
     // project-related functions
     struct ScribaProject* (*getProject)(scriba_id_t);
     scriba_list_t* (*getAllProjects)(void);
+    scriba_list_t* (*getProjectsByTitle)(const char *);
     scriba_list_t* (*getProjectsByCompany)(scriba_id_t);
     scriba_list_t* (*getProjectsByState)(enum ScribaProjectState);
     void (*addProject)(scriba_id_t, const char *, const char *, scriba_id_t,

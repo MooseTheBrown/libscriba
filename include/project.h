@@ -55,6 +55,8 @@ struct ScribaProject
 struct ScribaProject *scriba_getProject(scriba_id_t id);
 // get all projects in the database
 scriba_list_t *scriba_getAllProjects();
+// search projects by title
+scriba_list_t *scriba_getProjectsByTitle(const char *title);
 // get projects associated with given company
 scriba_list_t *scriba_getProjectsByCompany(scriba_id_t id);
 // get projects with given state

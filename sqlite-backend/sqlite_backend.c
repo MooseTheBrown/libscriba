@@ -196,6 +196,7 @@ static scriba_list_t *projectSearch(sqlite3_stmt *stmt);
 // project handling interface functions
 static struct ScribaProject *getProject(scriba_id_t id);
 static scriba_list_t *getAllProjects();
+static scriba_list_t *getProjectsByTitle(const char *title);
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
 static void addProject(scriba_id_t id, const char *title, const char *descr,
@@ -265,6 +266,7 @@ int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTb
     fTbl->removePOC = removePOC;
     fTbl->getProject = getProject;
     fTbl->getAllProjects = getAllProjects;
+    fTbl->getProjectsByTitle = getProjectsByTitle;
     fTbl->getProjectsByCompany = getProjectsByCompany;
     fTbl->getProjectsByState = getProjectsByState;
     fTbl->addProject = addProject;
@@ -1862,6 +1864,10 @@ exit:
     {
         sqlite3_finalize(stmt_last);
     }
+    if (search != NULL)
+    {
+        free(search);
+    }
     return people;
 }
 
@@ -2352,6 +2358,74 @@ error:
     }
     // we have to return an empty list, can't return NULL
     return (scriba_list_init());
+}
+
+static scriba_list_t *getProjectsByTitle(const char *title)
+{
+    scriba_list_t *projects = scriba_list_init();
+    char query[] = "SELECT id,title FROM Projects WHERE title LIKE ?";
+    sqlite3_stmt *stmt = NULL;
+    char *search = str_for_like_op(title);
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_text(stmt, 1, search, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            // id and title fields are always selected from the table
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
+            const char *title = sqlite3_column_text(stmt, 1);
+            int len = strlen(title);
+            if (len > 0)
+            {
+                char *project_title = (char *)malloc(len + 1);
+                strcpy(project_title, title);
+                scriba_list_add(projects, id, project_title);
+                free(project_title);
+            }
+            else
+            {
+                scriba_list_add(projects, id, NULL);
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    if (search != NULL)
+    {
+        free(search);
+    }
+    return projects;
 }
 
 static scriba_list_t *getProjectsByCompany(scriba_id_t id)
