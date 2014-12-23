@@ -79,9 +79,9 @@ public class EventTest {
                         "6543210", "msapozhnikov@test.com", "SW engineer", _company1_id);
         ScribaDB.addPOC("Kseniia", "Nikolayevna", "Sapozhnikova", "1111222333",
                         "6543210", "ksapozhnikova@test.com", "The boss", _company2_id);
-        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail", "Alekseevich", "Sapozhnikov");
+        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail");
         _poc1_id = people[0].id;
-        people = ScribaDB.getPOCByName("Kseniia", "Nikolayevna", "Sapozhnikova");
+        people = ScribaDB.getPOCByName("Kseniia");
         _poc2_id = people[0].id;
 
         // add events
@@ -107,6 +107,20 @@ public class EventTest {
     public void testGetAllEvents() {
         DataDescriptor[] events = ScribaDB.getAllEvents();
         assertEquals("Total number of events", 2, events.length);
+    }
+
+    @Test
+    public void testGetEventsByDescr() {
+        DataDescriptor[] events = ScribaDB.getEventsByDescr("h");
+        assertEquals("2 events should be found", 2, events.length);
+
+        events = ScribaDB.getEventsByDescr("BLAH");
+        Event event = ScribaDB.getEvent(events[0].id);
+        assertTrue("First event should be found", event.descr.equals("Blahblah"));
+
+        events = ScribaDB.getEventsByDescr("ch");
+        event = ScribaDB.getEvent(events[0].id);
+        assertTrue("Second event should be found", event.descr.equals("Lunch"));
     }
 
     @Test

@@ -89,6 +89,16 @@ public class ProjectTest {
     }
 
     @Test
+    public void testSearchByTitle() {
+        DataDescriptor[] projects = ScribaDB.getProjectsByTitle("Project 1");
+        Project project = ScribaDB.getProject(projects[0].id);
+        assertEquals("Exact title match", Project.State.EXECUTION, project.state);
+
+        projects = ScribaDB.getProjectsByTitle("PROJ");
+        assertEquals("3 projects should be found", 3, projects.length);
+    }
+
+    @Test
     public void testProjectData() {
         DataDescriptor[] projects = ScribaDB.getProjectsByCompany(_company2_id);
         Project project = ScribaDB.getProject(projects[0].id);

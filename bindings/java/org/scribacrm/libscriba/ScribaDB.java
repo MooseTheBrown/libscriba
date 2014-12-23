@@ -80,9 +80,7 @@ public final class ScribaDB {
     // poc routines
     public static native POC getPoc(UUID id);
     public static native DataDescriptor[] getAllPeople();
-    public static native DataDescriptor[] getPOCByName(String firstname,
-                                                       String secondname,
-                                                       String lastname);
+    public static native DataDescriptor[] getPOCByName(String name);
     public static native DataDescriptor[] getPOCByCompany(UUID id);
     public static native DataDescriptor[] getPOCByPosition(String position);
     public static native DataDescriptor[] getPOCByEmail(String email);
@@ -95,6 +93,7 @@ public final class ScribaDB {
     // project routines
     public static native Project getProject(UUID id);
     public static native DataDescriptor[] getAllProjects();
+    public static native DataDescriptor[] getProjectsByTitle(String title);
     public static native DataDescriptor[] getProjectsByCompany(UUID company_id);
     public static native DataDescriptor[] getProjectsByState(byte state);
     public static native void addProject(String title, String descr, UUID company_id, byte state);
@@ -104,6 +103,7 @@ public final class ScribaDB {
     // event routines
     public static native Event getEvent(UUID id);
     public static native DataDescriptor[] getAllEvents();
+    public static native DataDescriptor[] getEventsByDescr(String descr);
     public static native DataDescriptor[] getEventsByCompany(UUID company_id);
     public static native DataDescriptor[] getEventsByPOC(UUID poc_id);
     public static native DataDescriptor[] getEventsByProject(UUID project_id);

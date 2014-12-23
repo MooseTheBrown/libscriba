@@ -850,32 +850,20 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getAllPeopl
 
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getPOCByName(JNIEnv *env,
                                                                                   jclass this,
-                                                                                  jstring firstname,
-                                                                                  jstring secondname,
-                                                                                  jstring lastname)
+                                                                                  jstring name)
 {
     jobjectArray java_poc_list = NULL;
     scriba_list_t *poc_list = NULL;
-    char *native_firstname = java_string_to_utf8(env, this, firstname);
-    char *native_secondname = java_string_to_utf8(env, this, secondname);
-    char *native_lastname = java_string_to_utf8(env, this, lastname);
+    char *native_name = java_string_to_utf8(env, this, name);
 
-    poc_list = scriba_getPOCByName(native_firstname, native_secondname, native_lastname);
+    poc_list = scriba_getPOCByName(native_name);
 
     java_poc_list = scriba_list_to_data_descr_array(env, this, poc_list);
     
 exit:
-    if (native_firstname != NULL)
+    if (native_name != NULL)
     {
-        free(native_firstname);
-    }
-    if (native_secondname != NULL)
-    {
-        free(native_secondname);
-    }
-    if (native_lastname != NULL)
-    {
-        free(native_lastname);
+        free(native_name);
     }
     scriba_list_delete(poc_list);
     return java_poc_list;
@@ -1172,6 +1160,31 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getAllProje
     return java_projects;
 }
 
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByTitle(JNIEnv *env,
+                                                                                        jclass this,
+                                                                                        jstring title)
+{
+    jobjectArray java_projects = NULL;
+    scriba_list_t *projects = NULL;
+    char *native_title = java_string_to_utf8(env, this, title);
+
+    projects = scriba_getProjectsByTitle(native_title);
+    if (projects == NULL)
+    {
+        goto exit;
+    }
+
+    java_projects = scriba_list_to_data_descr_array(env, this, projects);
+
+exit:
+    if (native_title != NULL)
+    {
+        free(native_title);
+    }
+    scriba_list_delete(projects);
+    return java_projects;
+}
+
 JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByCompany(JNIEnv *env,
                                                                                           jclass this,
                                                                                           jobject id)
@@ -1384,6 +1397,31 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getAllEvent
     java_events = scriba_list_to_data_descr_array(env, this, events);
     scriba_list_delete(events);
 
+    return java_events;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByDescr(JNIEnv *env,
+                                                                                      jclass this,
+                                                                                      jstring descr)
+{
+    jobjectArray java_events = NULL;
+    scriba_list_t *events = NULL;
+    char *native_descr = java_string_to_utf8(env, this, descr);
+
+    events = scriba_getEventsByDescr(native_descr);
+    if (events == NULL)
+    {
+        goto exit;
+    }
+
+    java_events = scriba_list_to_data_descr_array(env, this, events);
+
+exit:
+    if (native_descr != NULL)
+    {
+        free(native_descr);
+    }
+    scriba_list_delete(events);
     return java_events;
 }
 

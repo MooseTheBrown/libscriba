@@ -76,7 +76,7 @@ public class POCTest {
 
     @Test
     public void testGetPoc() {
-        DataDescriptor[] people = ScribaDB.getPOCByName("Kseniia", "Nikolayevna", "Sapozhnikova");
+        DataDescriptor[] people = ScribaDB.getPOCByName("Kseniia");
         POC poc = ScribaDB.getPoc(people[0].id);
         assertTrue("POC id match", people[0].id.equals(poc.id));
         assertTrue("POC firstname match", poc.firstname.equals("Kseniia"));
@@ -91,11 +91,14 @@ public class POCTest {
 
     @Test
     public void testSearchByName() {
-        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail", "Alekseevich", "Sapozhnikov");
+        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail");
         assertEquals("poc1 should exist", 1, people.length);
         
-        people = ScribaDB.getPOCByName(null, null, "Sapozhnikova");
+        people = ScribaDB.getPOCByName("Sapozhnikova");
         assertEquals("poc2 should exist", 1, people.length);
+
+        people = ScribaDB.getPOCByName("sap");
+        assertEquals("Both should be found", 2, people.length);
     }
 
     @Test
@@ -118,7 +121,7 @@ public class POCTest {
 
     @Test
     public void testUpdatePOC() {
-        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail", null, "Sapozhnikov");
+        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail");
         UUID poc_id = people[0].id;
 
         POC poc = ScribaDB.getPoc(poc_id);
@@ -132,7 +135,7 @@ public class POCTest {
 
     @Test
     public void testRemovePOC() {
-        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail", null, "Sapozhnikov");
+        DataDescriptor[] people = ScribaDB.getPOCByName("Mikhail");
         UUID poc_id = people[0].id;
 
         ScribaDB.removePOC(poc_id);

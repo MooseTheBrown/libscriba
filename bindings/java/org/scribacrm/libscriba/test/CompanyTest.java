@@ -73,13 +73,19 @@ public class CompanyTest {
     @Test
     public void testGetCompaniesyByName() {
         DataDescriptor[] companies = ScribaDB.getCompaniesByName("TestCompany#1");
-        assertEquals("1 company should be found by name", 1, companies.length);
+        assertEquals("1 company should be found by exact name", 1, companies.length);
+
+        companies = ScribaDB.getCompaniesByName("test");
+        assertEquals("2 companies should be found", 2, companies.length);
     }
 
     @Test
     public void testGetCompaniesByJurName() {
         DataDescriptor[] companies = ScribaDB.getCompaniesByJurName("TestCompany#2_jur_name");
-        assertEquals("1 company should be found by jur name", 1, companies.length);
+        assertEquals("1 company should be found by exact jur name", 1, companies.length);
+
+        companies = ScribaDB.getCompaniesByJurName("JUR");
+        assertEquals("2 companies should be found", 2, companies.length);
     }
 
     @Test
@@ -136,9 +142,9 @@ public class CompanyTest {
         ScribaDB.addPOC("Kseniia", "Nikolayevna", "Sapozhnikova", "1111222333",
                         "6543210", "ksapozhnikova@test.com", "The boss", company_id);
 
-        DataDescriptor[] poc1 = ScribaDB.getPOCByName("Mikhail", "Alekseevich", "Sapozhnikov");
+        DataDescriptor[] poc1 = ScribaDB.getPOCByName("Mikhail");
         UUID poc1_id = poc1[0].id;
-        DataDescriptor[] poc2 = ScribaDB.getPOCByName("Kseniia", "Nikolayevna", "Sapozhnikova");
+        DataDescriptor[] poc2 = ScribaDB.getPOCByName("Kseniia");
         UUID poc2_id = poc2[0].id;
 
         ScribaDB.addProject("SW development", "Just moosing around really", company_id,
