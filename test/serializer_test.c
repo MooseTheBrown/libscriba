@@ -139,6 +139,7 @@ void test_serializer_remote_override()
     free(company->name);
     int len = strlen("Modified company name");
     company->name = (char *)malloc(len + 1);
+    memset(company->name, 0, len + 1);
     strncpy(company->name, "Modified company name", len);
     scriba_updateCompany(company);
     scriba_freeCompanyData(company);

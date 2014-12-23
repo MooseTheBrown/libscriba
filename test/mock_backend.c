@@ -1085,6 +1085,8 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
     struct ScribaProject *new_project = (struct ScribaProject *)malloc(sizeof (struct ScribaProject));
     int len = 0;
 
+    memset(new_project, 0, sizeof (struct ScribaProject));
+
     scriba_id_copy(&(new_project->id), &id);
     if ((len = strlen(title)) != 0)
     {
