@@ -61,5 +61,5 @@ LOCAL_SRC_FILES := company.c event.c org_scribacrm_libscriba_ScribaDB.c poc.c pr
 LOCAL_CFLAGS := -std=c99
 LOCAL_CPPFLAGS := -std=c++11
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/layout $(LOCAL_PATH)/unicode
-LOCAL_STATIC_LIBRARIES := icu-i18n icu=io icu-le icu-lx icu-tu icu-uc icu-data
+LOCAL_STATIC_LIBRARIES := icu-i18n icu-io icu-le icu-lx icu-tu icu-uc icu-data
 include $(BUILD_SHARED_LIBRARY)
