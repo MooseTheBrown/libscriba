@@ -63,12 +63,18 @@ copy_files()
 
     # copy sources
 
-    mkdir $NATIVE_TARGET_DIR
+    if [ ! -e $NATIVE_TARGET_DIR ]; then
+        mkdir $NATIVE_TARGET_DIR
+    fi
+
     for header in $LIBRARY_INCLUDE_FILES; do
         cp $header $NATIVE_TARGET_DIR/
     done
 
-    mkdir $FLATBUFFERS_TARGET_DIR
+    if [ ! -e $FLATBUFFERS_TARGET_DIR ]; then
+        mkdir $FLATBUFFERS_TARGET_DIR
+    fi
+
     for header in $FLATBUFFERS_INCLUDE_FILES; do
         cp $header $FLATBUFFERS_TARGET_DIR/
     done
@@ -101,8 +107,42 @@ copy_files()
 
 remove_files()
 {
-    rm -rf $NATIVE_TARGET_DIR
+    echo "Removing files..."
+
+    # flatbuffers
+    rm -rf $FLATBUFFERS_TARGET_DIR
+
+    # C sources
+    for header in $LIBRARY_INCLUDE_FILES; do
+        basefilename=`basename $header`
+        rm "$NATIVE_TARGET_DIR/$basefilename"
+    done
+
+    for file in $LIBRARY_FRONTEND_FILES; do
+        basefilename=`basename $file`
+        rm "$NATIVE_TARGET_DIR/$basefilename"
+    done
+
+    for file in $LIBRARY_BACKEND_FILES; do
+        basefilename=`basename $file`
+        rm "$NATIVE_TARGET_DIR/$basefilename"
+    done
+
+    # Android.mk and Application.mk
+    basefilename=`basename $ANDROID_MK_FILE`
+    rm "$NATIVE_TARGET_DIR/$basefilename"
+    basefilename=`basename $APPLICATION_MK_FILE`
+    rm "$NATIVE_TARGET_DIR/$basefilename"
+
+    # JNI sources
+    for file in $LIBRARY_JNI_FILES; do
+        basefilename=`basename $file`
+        rm "$NATIVE_TARGET_DIR/$basefilename"
+    done
+
     rm -rf $JAVA_TARGET_DIR
+
+    echo "Done"
 }
 
 if [ -z $2 ]; then
