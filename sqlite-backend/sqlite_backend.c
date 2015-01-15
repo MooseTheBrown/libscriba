@@ -62,8 +62,8 @@
     "secondname TEXT COLLATE NOCASE,"\
     "lastname TEXT COLLATE NOCASE,"\
     "mobilenum TEXT,"\
-    "phonenum TEXT,"\
-    "email TEXT,"\
+    "phonenum TEXT COLLATE NOCASE,"\
+    "email TEXT COLLATE NOCASE,"\
     "position TEXT COLLATE NOCASE,"\
     "company_id BLOB"\
     ")"
@@ -1914,8 +1914,16 @@ exit:
 
 static scriba_list_t *getPOCByPosition(const char *position)
 {
-    return pocSearchByStr("SELECT id,firstname,secondname,lastname FROM People WHERE position=?",
-                          position);
+    char *search = str_for_like_op(position);
+    scriba_list_t *ret;
+    ret = pocSearchByStr("SELECT id,firstname,secondname,lastname FROM People WHERE position LIKE ?",
+                         search);
+
+    if (search != NULL)
+    {
+        free(search);
+    }
+    return ret;
 }
 
 static scriba_list_t *getPOCByPhoneNum(const char *phonenum)
@@ -1926,8 +1934,16 @@ static scriba_list_t *getPOCByPhoneNum(const char *phonenum)
 
 static scriba_list_t *getPOCByEmail(const char *email)
 {
-    return pocSearchByStr("SELECT id,firstname,secondname,lastname FROM People WHERE email=?",
-                          email);
+    char *search = str_for_like_op(email);
+    scriba_list_t *ret;
+    ret = pocSearchByStr("SELECT id,firstname,secondname,lastname FROM People WHERE email LIKE ?",
+                         search);
+
+    if (search != NULL)
+    {
+        free(search);
+    }
+    return ret;
 }
 
 static void addPOC(scriba_id_t id, const char *firstname, const char *secondname,

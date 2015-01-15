@@ -920,9 +920,9 @@ void test_poc_search()
     scriba_id_create(&company_id);
 
     scriba_addPOCWithID(poc1_id, "Mikhail", "Alekseevich", "Sapozhnikov",
-                        "", "", "", "", company_id);
+                        "", "", "mas@test.org", "testpos", company_id);
     scriba_addPOCWithID(poc2_id, "Kseniia", "Nikolayevna", "Sapozhnikova",
-                        "", "", "", "", company_id);
+                        "", "", "ks@test.org", "test", company_id);
     scriba_addPOCWithID(poc3_id, "Andrey", "Gennadyevich", "Pilyaev",
                         "", "", "", "", company_id);
 
@@ -957,6 +957,24 @@ void test_poc_search()
     scriba_list_delete(people);
     people = NULL;
 
+    people = scriba_getPOCByEmail(".org");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NOT_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc1_id, &(people->id)));
+    CU_ASSERT(scriba_id_compare(&poc2_id, &(people->next->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByPosition("TEST");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NOT_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc1_id, &(people->id)));
+    CU_ASSERT(scriba_id_compare(&poc2_id, &(people->next->id)));
+
+    scriba_list_delete(people);
+    people = NULL;
+
     clean_local_db();
 }
 
@@ -974,9 +992,9 @@ void test_ru_poc_search()
     scriba_id_create(&company_id);
 
     scriba_addPOCWithID(poc1_id, "Михаил", "Алексеевич", "Сапожников",
-                        "", "", "", "", company_id);
+                        "", "", "", "тестовая_должность", company_id);
     scriba_addPOCWithID(poc2_id, "Ксения", "Николаевна", "Сапожникова",
-                        "", "", "", "", company_id);
+                        "", "", "", "тест", company_id);
     scriba_addPOCWithID(poc3_id, "Андрей", "Геннадиевич", "Пиляев",
                         "", "", "", "", company_id);
 
@@ -1008,6 +1026,15 @@ void test_ru_poc_search()
 
     people = scriba_getPOCByName("неттаких");
     CU_ASSERT(scriba_list_is_empty(people));
+
+    scriba_list_delete(people);
+    people = NULL;
+
+    people = scriba_getPOCByPosition("ТЕСТ");
+    CU_ASSERT_FALSE(scriba_list_is_empty(people));
+    CU_ASSERT_PTR_NOT_NULL(people->next);
+    CU_ASSERT(scriba_id_compare(&poc1_id, &(people->id)));
+    CU_ASSERT(scriba_id_compare(&poc2_id, &(people->next->id)));
 
     scriba_list_delete(people);
     people = NULL;

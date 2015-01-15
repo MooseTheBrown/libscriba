@@ -774,17 +774,24 @@ static scriba_list_t *getPOCByPosition(const char *position)
 {
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
+    char *search_lower = str_tolower(position);
 
     while (poc != NULL)
     {
-        if (strcmp(poc->data->position, position) == 0)
+        char *pos_lower = str_tolower(poc->data->position);
+        if (pos_lower != NULL)
         {
-            scriba_list_add(list, poc->data->id, NULL);
+            if (strstr(pos_lower, search_lower) != NULL)
+            {
+                scriba_list_add(list, poc->data->id, NULL);
+            }
         }
 
         poc = poc->next;
+        free(pos_lower);
     }
 
+    free(search_lower);
     return list;
 }
 
@@ -810,17 +817,24 @@ static scriba_list_t *getPOCByEmail(const char *email)
 {
     scriba_list_t *list = scriba_list_init();
     struct MockPOCList *poc = mockData.people;
+    char *search_lower = str_tolower(email);
 
     while (poc != NULL)
     {
-        if (strcmp(poc->data->email, email) == 0)
+        char *email_lower = str_tolower(poc->data->email);
+        if (email_lower != NULL)
         {
-            scriba_list_add(list, poc->data->id, NULL);
+            if (strstr(email_lower, search_lower) != NULL)
+            {
+                scriba_list_add(list, poc->data->id, NULL);
+            }
         }
 
         poc = poc->next;
+        free(email_lower);
     }
 
+    free(search_lower);
     return list;
 }
 
