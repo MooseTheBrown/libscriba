@@ -111,6 +111,7 @@ int main()
     }
 
     CU_add_test(serializer_test_suite, "Serializer test", test_serializer);
+    CU_add_test(serializer_test_suite, "Serializer Russian test", test_serializer_ru);
     CU_add_test(serializer_test_suite,
                 "Serializer remote override test",
                 test_serializer_remote_override);
