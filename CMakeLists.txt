@@ -1,5 +1,5 @@
 # 
-#  Copyright (C) 2014 Mikhail Sapozhnikov
+#  Copyright (C) 2015 Mikhail Sapozhnikov
 #
 #  This file is part of libscriba.
 #
@@ -27,6 +27,7 @@ set (CMAKE_C_FLAGS_RELWITHDEBINFO "-std=c11 -ggdb")
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-std=c++11 -ggdb")
 
 option (BUILD_UNIT_TESTS "generate targets to build unit tests" ON)
+option (BUILD_TEST_GENERATOR "generate targets to build test database generator" ON)
 option (BUILD_JAVA_BINDINGS "generate targets to build Java bindings" ON)
 
 # main library
@@ -84,6 +85,12 @@ if (BUILD_JAVA_BINDINGS)
                        COMMAND mv libscriba.jar ${libscriba_BINARY_DIR}
                        WORKING_DIRECTORY ${JAVA_BINDINGS_DIR})
 endif (BUILD_JAVA_BINDINGS)
+
+# test generator
+if (BUILD_TEST_GENERATOR)
+    add_executable (scriba_test_generator ${libscriba_SOURCE_DIR}/test/test_db_generator.c)
+    target_link_libraries (scriba_test_generator scriba)
+endif (BUILD_TEST_GENERATOR)
 
 # unit tests
 if (BUILD_UNIT_TESTS)
