@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -184,10 +184,10 @@ public class EventTest {
         DataDescriptor[] events = ScribaDB.getEventsByCompany(_company2_id);
         ScribaDB.removeEvent(events[0].id);
         events = ScribaDB.getEventsByPOC(_poc2_id);
-        assertEquals("no events should remain for poc 2", 0, events.length);
+        assertEquals("no events should remain for poc 2", null, events);
         events = ScribaDB.getEventsByProject(_project2_id);
-        assertEquals("no events should remain for project 2", 0, events.length);
+        assertEquals("no events should remain for project 2", null, events);
         events = ScribaDB.getEventsByCompany(_company2_id);
-        assertEquals("no events should remain for company 2", 0, events.length);
+        assertEquals("no events should remain for company 2", null, events);
     }
 }

@@ -107,7 +107,7 @@ if (BUILD_UNIT_TESTS)
         message (FATAL_ERROR "Couldn't find cunit library")
     endif()
 
-    add_executable (libscriba-test EXCLUDE_FROM_ALL ${LIBSCRIBA_UT_SRC})
+    add_executable (libscriba-test ${LIBSCRIBA_UT_SRC})
     target_link_libraries (libscriba-test scriba ${CUNIT_LIB})
 
     # Java bindings tests

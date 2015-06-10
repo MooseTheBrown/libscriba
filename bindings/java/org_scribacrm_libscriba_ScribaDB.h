@@ -311,6 +311,14 @@ JNIEXPORT jbyteArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_serialize
 JNIEXPORT jbyte JNICALL Java_org_scribacrm_libscriba_ScribaDB_deserialize
   (JNIEnv *, jclass, jbyteArray, jbyte);
 
+/*
+ * Class:     org_scribacrm_libscriba_ScribaDB
+ * Method:    next
+ * Signature: (J)[Lorg/scribacrm/libscriba/DataDescriptor;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_next
+  (JNIEnv *, jclass, jlong);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -130,7 +130,7 @@ public class ProjectTest {
         projects = ScribaDB.getProjectsByState(Project.State.REJECTED);
         assertEquals("1 rejected project", 1, projects.length);
         projects = ScribaDB.getProjectsByState(Project.State.INITIAL);
-        assertEquals("No projects in initial state", 0, projects.length);
+        assertEquals("No projects in initial state", null, projects);
     }
 
     @Test
@@ -151,6 +151,6 @@ public class ProjectTest {
         DataDescriptor[] projects = ScribaDB.getProjectsByCompany(_company2_id);
         ScribaDB.removeProject(projects[0].id);
         projects = ScribaDB.getProjectsByCompany(_company2_id);
-        assertEquals("no projects should remain for company 2", 0, projects.length);
+        assertEquals("no projects should remain for company 2", null, projects);
     }
 }

@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -118,6 +118,9 @@ public final class ScribaDB {
                                           DataDescriptor[] projects);
 
     public static native byte deserialize(byte[] buf, byte mergeStrategy);
+
+    // retrieve array of descriptors pointed to by nextId
+    public static native DataDescriptor[] next(long nextId);
 
     public static byte[] getUtf8FromString(String str) throws UnsupportedEncodingException {
         if (str == null) {

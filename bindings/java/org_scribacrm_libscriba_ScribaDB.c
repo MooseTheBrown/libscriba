@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -29,7 +29,41 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// maximum size of array, which is passed to Java directly
+#define MAX_ARRAY_SIZE  50
+// invalid next id, must match DataDescriptor.NONEXT constant in Java code
+#define NONEXT -1
+
+/* Data array part passes large arrays of objects between native code
+ * and Java in small chunks to avoid JNI local reference table overflow
+ */
+typedef struct
+{
+    long id;
+    scriba_list_t *data;    // the whole native list
+    scriba_list_t *part;    // points to the first element not yet passed to Java
+} data_array_part;
+
+// list of all data array parts
+struct
+{
+    data_array_part *list;
+    long list_size;
+    // list of free array part ids (and free locations within array part list)
+    long *free_ids;
+    long num_free_ids;
+    long allocated_free_ids;
+    jobject sync_obj;
+} part_list;
+
 // local utility functions
+
+// create new data array part, returns new part id
+static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t *part);
+// find data array part
+static data_array_part *get_data_array_part(JNIEnv *env, long id);
+// remove data array part
+static void remove_data_array_part(JNIEnv *env, long id);
 
 // string conversion routines
 static char *java_string_to_utf8(JNIEnv *env, jclass this, jstring str);
@@ -43,6 +77,112 @@ static scriba_list_t *data_descr_array_to_scriba_list(JNIEnv *env, jclass this,
 
 // convert Java UUID object to scriba_id_t
 static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id);
+
+static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t *part)
+{
+    data_array_part *new_part = NULL;
+
+    (*env)->MonitorEnter(env, part_list.sync_obj);
+
+    if (part_list.list == NULL)
+    {
+        // this will be the first element
+        part_list.list = (data_array_part *)malloc(sizeof (data_array_part));
+        part_list.list_size = 1;
+        new_part = &(part_list.list[0]);
+        new_part->id = part_list.list_size - 1;
+    }
+    else
+    {
+        // is there a free space in already allocated memory?
+        if (part_list.num_free_ids > 0)
+        {
+            long new_id = part_list.free_ids[part_list.num_free_ids - 1];
+            part_list.num_free_ids--;
+            new_part = &(part_list.list[new_id]);
+            new_part->id = new_id;
+        }
+        else
+        {
+            // no, we have to increase the part list
+            part_list.list_size++;
+            part_list.list = (data_array_part *)realloc(part_list.list,
+                                                        sizeof (data_array_part) * part_list.list_size);
+            new_part = &(part_list.list[part_list.list_size - 1]);
+            new_part->id = part_list.list_size - 1;
+        }
+    }
+
+    // copy the whole list
+    new_part->data = scriba_list_init();
+    scriba_list_for_each(data, item)
+    {
+        scriba_list_add(new_part->data, item->id, item->text);
+    }
+    scriba_list_for_each(new_part->data, new_item)
+    {
+        if (scriba_id_compare(&(new_item->id), &(part->id)))
+        {
+            new_part->part = new_item;
+        }
+    }
+
+    (*env)->MonitorExit(env, part_list.sync_obj);
+
+    return new_part->id;
+}
+
+static data_array_part *get_data_array_part(JNIEnv *env, long id)
+{
+    data_array_part *part = NULL;
+
+    (*env)->MonitorEnter(env, part_list.sync_obj);
+
+    if (id < part_list.list_size)
+    {
+        part = &(part_list.list[id]);
+    }
+
+    (*env)->MonitorExit(env, part_list.sync_obj);
+
+    return part;
+}
+
+static void remove_data_array_part(JNIEnv *env, long id)
+{
+    (*env)->MonitorEnter(env, part_list.sync_obj);
+
+    if (id < part_list.list_size)
+    {
+        data_array_part *part = &(part_list.list[id]);
+        scriba_list_delete(part->data);
+        part->data = NULL;
+        part->part = NULL;
+        // don't shrink the list, just mark given id as free
+        if (part_list.free_ids == NULL)
+        {
+            // allocate space for free ids array
+            part_list.free_ids = (long *)malloc(sizeof (long) * 10);
+            part_list.allocated_free_ids = 10;
+            part_list.num_free_ids = 1;
+            part_list.free_ids[0] = id;
+        }
+        else
+        {
+            if (part_list.num_free_ids == part_list.allocated_free_ids)
+            {
+                // increase free ids array
+                part_list.allocated_free_ids += 10;
+                part_list.free_ids = (long *)realloc(part_list.free_ids,
+                                                     part_list.allocated_free_ids);
+            }
+            part_list.num_free_ids++;
+            part_list.free_ids[part_list.num_free_ids - 1] = id;
+        }
+    }
+
+    (*env)->MonitorExit(env, part_list.sync_obj);
+}
 
 /* Java passes strings through JNI using "modified" UTF-8 encoding, which
    can lead to disaster if we just consider them normal UTF-8 strings. To
@@ -148,6 +288,7 @@ static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, sc
     jmethodID constructor_id = NULL;
     jclass data_descr_class = NULL;
     int num_elements = 0;
+    char part = 0;
     int i = 0;
 
     if (list == NULL)
@@ -173,13 +314,19 @@ static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, sc
         num_elements++;
     }
 
-    java_array = (*env)->NewObjectArray(env, num_elements, data_descr_class, NULL);
-    if (java_array == NULL)
+    if (num_elements == 0)
     {
         goto exit;
     }
 
-    if (num_elements == 0)
+    if (num_elements > MAX_ARRAY_SIZE)
+    {
+        num_elements = MAX_ARRAY_SIZE;
+        part = 1;
+    }
+
+    java_array = (*env)->NewObjectArray(env, num_elements, data_descr_class, NULL);
+    if (java_array == NULL)
     {
         goto exit;
     }
@@ -192,18 +339,41 @@ static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, sc
 
     scriba_list_for_each(list, item)
     {
-        jlong item_id_high = (jlong)(item->id._high);
-        jlong item_id_low = (jlong)(item->id._low);
-        jstring item_text = utf8_to_java_string(env, this, item->text);
-
-        data_descriptors[i] = (*env)->NewObject(env, data_descr_class, constructor_id,
-                                                item_id_high, item_id_low, item_text);
-        if (data_descriptors[i] == NULL)
+        if ((i == (MAX_ARRAY_SIZE - 1)) && (part == 1))
         {
-            goto exit;
-        }
+            long part_id = add_data_array_part(env, list, item);
+            jmethodID part_constructor_id = (*env)->GetMethodID(env,
+                                                                data_descr_class,
+                                                                "<init>", "(J)V");
+            if (part_constructor_id == NULL)
+            {
+                goto exit;
+            }
 
-        i++;
+            data_descriptors[i] = (*env)->NewObject(env, data_descr_class,
+                                                    part_constructor_id, part_id);
+            if (data_descriptors[i] == NULL)
+            {
+                goto exit;
+            }
+
+            break;
+        }
+        else
+        {
+            jlong item_id_high = (jlong)(item->id._high);
+            jlong item_id_low = (jlong)(item->id._low);
+            jstring item_text = utf8_to_java_string(env, this, item->text);
+
+            data_descriptors[i] = (*env)->NewObject(env, data_descr_class, constructor_id,
+                                                    item_id_high, item_id_low, item_text);
+            if (data_descriptors[i] == NULL)
+            {
+                goto exit;
+            }
+
+            i++;
+        }
     }
 
     for (i = 0; i < num_elements; i++)
@@ -226,6 +396,7 @@ static scriba_list_t *data_descr_array_to_scriba_list(JNIEnv *env, jclass this,
     jsize array_length;
     scriba_list_t *scriba_list = scriba_list_init();
     jfieldID uuid_field_id;
+    jfieldID next_field_id;
     jclass data_descr_class;
 
     data_descr_class = (*env)->FindClass(env, "org/scribacrm/libscriba/DataDescriptor");
@@ -243,19 +414,50 @@ static scriba_list_t *data_descr_array_to_scriba_list(JNIEnv *env, jclass this,
         goto exit;
     }
 
+    next_field_id = (*env)->GetFieldID(env,
+                                       data_descr_class,
+                                       "nextId",
+                                       "J");
+    if (next_field_id == NULL)
+    {
+        goto exit;
+    }
+
     array_length = (*env)->GetArrayLength(env, data_descr_array);
     for (jsize i = 0; i < array_length; i++)
     {
         jobject data_descr = (*env)->GetObjectArrayElement(env, data_descr_array, i);
-        jobject uuid = (*env)->GetObjectField(env, data_descr, uuid_field_id);
-        scriba_id_t scriba_id;
-        UUID_to_scriba_id(env, uuid, &scriba_id);
-        scriba_list_add(scriba_list, scriba_id, NULL);
-        /* For now we don't need to copy text description of each entry here
-           because this function is currently used only by serializer, and it
-           needs only ids in the lists. */
-        (*env)->DeleteLocalRef(env, data_descr);
-        (*env)->DeleteLocalRef(env, uuid);
+        jlong nextId = (*env)->GetLongField(env, data_descr, next_field_id);
+        if (nextId != NONEXT)
+        {
+            data_array_part *part = get_data_array_part(env, nextId);
+            if (part == NULL)
+            {
+                goto exit;
+            }
+            // copy the remaining part to the new list
+            scriba_list_for_each(part->part, item)
+            {
+                scriba_list_add(scriba_list, item->id, NULL);
+            }
+
+            (*env)->DeleteLocalRef(env, data_descr);
+            break;
+            // don't remove data array part here, because Java code still
+            // owns data descriptor array
+        }
+        else
+        {
+            jobject uuid = (*env)->GetObjectField(env, data_descr, uuid_field_id);
+            scriba_id_t scriba_id;
+            UUID_to_scriba_id(env, uuid, &scriba_id);
+            scriba_list_add(scriba_list, scriba_id, NULL);
+            /* For now we don't need to copy text description of each entry here
+               because this function is currently used only by serializer, and it
+               needs only ids in the lists. */
+            (*env)->DeleteLocalRef(env, uuid);
+            (*env)->DeleteLocalRef(env, data_descr);
+        }
     }
 
 exit:
@@ -320,6 +522,9 @@ JNIEXPORT jint JNICALL Java_org_scribacrm_libscriba_ScribaDB_init(JNIEnv *env,
     jbyte dbType = 0;
     struct ScribaDBParamList *pl = NULL;
     jsize plSize = 0;
+    jclass syncObjClass = NULL;
+    jmethodID syncObjConstructor = NULL;
+    jobject localSyncObj = NULL;
 
     memset(&db, 0, sizeof (struct ScribaDB));
 
@@ -422,6 +627,19 @@ JNIEXPORT jint JNICALL Java_org_scribacrm_libscriba_ScribaDB_init(JNIEnv *env,
     // call library init
     ret = scriba_init(&db, pl);
 
+    // initialize part_list
+    part_list.list = NULL;
+    part_list.list_size = 0;
+    part_list.free_ids = NULL;
+    part_list.num_free_ids = 0;
+    part_list.allocated_free_ids = 0;
+    syncObjClass = (*env)->FindClass(env, "java/lang/Integer");
+    syncObjConstructor = (*env)->GetMethodID(env,
+                                             syncObjClass,
+                                             "<init>", "(I)V");
+    localSyncObj = (*env)->NewObject(env, syncObjClass, syncObjConstructor, 1);
+    part_list.sync_obj = (*env)->NewGlobalRef(env, localSyncObj);
+
 exit:
     if (db.name != NULL)
     {
@@ -458,6 +676,31 @@ exit:
 
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_cleanup(JNIEnv *env, jclass this)
 {
+    // part_list cleanup
+    if (part_list.list != NULL)
+    {
+        for (long i = 0; i < part_list.list_size; i++)
+        {
+            data_array_part *part = &(part_list.list[i]);
+            if (part->data != NULL)
+            {
+                scriba_list_delete(part->data);
+            }
+        }
+        free(part_list.list);
+    }
+    part_list.list = NULL;
+    part_list.list_size = 0;
+    if (part_list.free_ids != NULL)
+    {
+        free(part_list.free_ids);
+    }
+    part_list.free_ids = 0;
+    part_list.num_free_ids = 0;
+    part_list.allocated_free_ids = 0;
+    (*env)->DeleteGlobalRef(env, part_list.sync_obj);
+
+    // library cleanup
     scriba_cleanup();
 }
 
@@ -1744,4 +1987,23 @@ exit:
     }
 
     return status;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_next(JNIEnv *env,
+                                                                          jclass this,
+                                                                          jlong nextId)
+{
+    jobjectArray array = NULL;
+    data_array_part *part = get_data_array_part(env, (long)nextId);
+    if (part == NULL)
+    {
+        return NULL;
+    }
+
+    array = scriba_list_to_data_descr_array(env, this, part->part);
+    // Array part is being transferred to Java, so remove it.
+    // scriba_list_to_data_descr_array() may have already created new part
+    remove_data_array_part(env, part->id);
+
+    return array;
 }

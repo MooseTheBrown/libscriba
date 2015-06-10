@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -29,7 +29,8 @@ import org.junit.runners.Suite;
     POCTest.class,
     ProjectTest.class,
     EventTest.class,
-    SerializerTest.class
+    SerializerTest.class,
+    DataArrayPartTest.class
 })
 
 public class JavaBindingsSuite {

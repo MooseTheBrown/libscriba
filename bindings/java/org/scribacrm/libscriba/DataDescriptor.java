@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -24,17 +24,34 @@ import java.util.UUID;
 
 public final class DataDescriptor {
 
+    public static final long NONEXT = -1;
+
     public final UUID id;
     public final String descr;
+    /* If nextId is not equal to NONEXT, then this descriptor points to
+       the next section of a descriptor array. Call ScribaDB.next(nextId)
+       to retrieve the next portion of the array. Array size limit is set
+       in JNI code.
+     */
+    public final long nextId;
 
     public DataDescriptor(UUID id, String descr) {
         this.id = id;
         this.descr = descr;
+        this.nextId = NONEXT;
     }
 
     public DataDescriptor(long id_high, long id_low, String descr) {
         this.id = new UUID(id_high, id_low);
         this.descr = descr;
+        this.nextId = NONEXT;
+    }
+
+    // this constructor is used by JNI code
+    public DataDescriptor(long nextId) {
+        this.id = null;
+        this.descr = null;
+        this.nextId = nextId;
     }
 
     @Override
