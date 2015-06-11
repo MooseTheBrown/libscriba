@@ -22,6 +22,7 @@ package org.scribacrm.libscriba;
 
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
+import java.util.ArrayList;
 
 public final class ScribaDB {
 
@@ -121,6 +122,29 @@ public final class ScribaDB {
 
     // retrieve array of descriptors pointed to by nextId
     public static native DataDescriptor[] next(long nextId);
+
+    // convenience wrapper around multiple next() calls:
+    // load all parts of large data descriptor array using next() and
+    // combine them into single array
+    public static DataDescriptor[] fetchAll(DataDescriptor[] part) {
+        ArrayList<DataDescriptor> concat = new ArrayList<DataDescriptor>();
+        DataDescriptor[] cur_part = part;
+        for (DataDescriptor d : cur_part) {
+            if (d.nextId == DataDescriptor.NONEXT) {
+                concat.add(d);
+            }
+        }
+        while (cur_part[cur_part.length - 1].nextId != DataDescriptor.NONEXT) {
+            cur_part = ScribaDB.next(cur_part[cur_part.length - 1].nextId);
+            for (DataDescriptor d : cur_part) {
+                if (d.nextId == DataDescriptor.NONEXT) {
+                    concat.add(d);
+                }
+            }
+        }
+
+        return concat.toArray(part);
+    }
 
     public static byte[] getUtf8FromString(String str) throws UnsupportedEncodingException {
         if (str == null) {

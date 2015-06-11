@@ -97,4 +97,10 @@ public class DataArrayPartTest {
         }
     }
 
+    @Test
+    public void testFetchAll() {
+        DataDescriptor[] part = ScribaDB.getAllCompanies();
+        DataDescriptor[] all = ScribaDB.fetchAll(part);
+        assertEquals("All 130 companies are retrieved", 130, all.length);
+    }
 }
