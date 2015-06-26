@@ -79,6 +79,8 @@ void scriba_id_create(scriba_id_t *id)
     fread((void *)id_str, 1, PROCFS_UUID_STR_LENGTH, fp);
 
     scriba_id_from_string(id_str, id);
+
+    fclose(fp);
 }
 
 // zero-initialize scriba id
