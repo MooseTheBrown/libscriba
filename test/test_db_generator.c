@@ -171,15 +171,21 @@ int main(int argc, char **argv)
     db.type = SCRIBA_DB_BUILTIN;
     db.location = NULL;
 
-    struct ScribaDBParam param;
-    param.key = "db_loc";
-    param.value = TEMP_DB;
+    struct ScribaDBParam param1;
+    param1.key = "db_loc";
+    param1.value = TEMP_DB;
 
-    struct ScribaDBParamList paramList;
-    paramList.param = &param;
-    paramList.next = NULL;
+    struct ScribaDBParam param2;
+    param2.key = "db_sync";
+    param2.value = "off";
 
-    err = scriba_init(&db, &paramList);
+    struct ScribaDBParamList paramList[2];
+    paramList[0].param = &param1;
+    paramList[0].next = &paramList[1];
+    paramList[1].param = &param2;
+    paramList[1].next = NULL;
+
+    err = scriba_init(&db, paramList);
     if (err != SCRIBA_INIT_SUCCESS)
     {
         printf("failed\n");
