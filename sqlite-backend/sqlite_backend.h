@@ -22,6 +22,10 @@
 
 #define SCRIBA_SQLITE_BACKEND_NAME "scriba_sqlite"
 #define SCRIBA_SQLITE_DB_LOCATION_PARAM "db_loc"
+// see SQLite PRAGMA synchronous
+#define SCRIBA_SQLITE_DB_SYNC_PARAM     "db_sync"
+#define SCRIBA_SQLITE_DB_SYNC_OFF       "off"
+#define SCRIBA_SQLITE_DB_SYNC_ON        "on"
 
 extern struct ScribaInternalDB sqliteDB;
 

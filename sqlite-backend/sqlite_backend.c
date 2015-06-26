@@ -81,10 +81,14 @@
 
 #define PROJECT_TABLE_COLUMNS 5
 
+#define ENABLE_SYNC "PRAGMA synchronous=2"
+#define DISABLE_SYNC "PRAGMA synchronous=0"
+
 struct ScribaSQLite
 {
     sqlite3 *db;
     char *db_filename;
+    int sync;
 } *data = NULL;
 
 
@@ -108,6 +112,8 @@ void scriba_sqlite_cleanup();
 static int parse_param_list(struct ScribaDBParamList *pl);
 // create new database; returns 0 on success, 1 on failure
 static int create_database();
+// configure SQLite sync mode
+static int configure_sync();
 // insert % at the beginning and at the end of search string for LIKE operator
 static char *str_for_like_op(const char *src);
 
@@ -215,6 +221,7 @@ int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTb
 
     data = (struct ScribaSQLite *)malloc(sizeof (struct ScribaSQLite));
     memset(data, 0, sizeof (struct ScribaSQLite));
+    data->sync = 1;     // sync is on by default
 
     if (parse_param_list(pl) != 0)
     {
@@ -227,12 +234,17 @@ int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTb
     {
         sqlite3_close(data->db);
         // given database does not exist, create new one
-        if(create_database() != 0)
+        if (create_database() != 0)
         {
             goto error;
         }
     }
     else if (err != SQLITE_OK)
+    {
+        goto error;
+    }
+
+    if (configure_sync() != 0)
     {
         goto error;
     }
@@ -331,6 +343,17 @@ static int parse_param_list(struct ScribaDBParamList *pl)
             memset(data->db_filename, 0, len + 1);
             strcpy(data->db_filename, param->value);
         }
+        else if (strcmp(param->key, SCRIBA_SQLITE_DB_SYNC_PARAM) == 0)
+        {
+            if (strcmp(param->value, SCRIBA_SQLITE_DB_SYNC_OFF) == 0)
+            {
+                data->sync = 0;
+            }
+            else if (strcmp(param->value, SCRIBA_SQLITE_DB_SYNC_ON) == 0)
+            {
+                data->sync = 1;
+            }
+        }
 
         pl = pl->next;
     } while (pl != NULL);
@@ -370,6 +393,35 @@ static int create_database()
     }
 
 success:
+    return 0;
+
+error:
+    return 1;
+}
+
+// configure SQLite sync mode
+static int configure_sync()
+{
+    if (data == NULL)
+    {
+        goto error;
+    }
+
+    if (data->sync == 0)
+    {
+        if (sqlite3_exec(data->db, DISABLE_SYNC, NULL, NULL, NULL) != SQLITE_OK)
+        {
+            goto error;
+        }
+    }
+    else
+    {
+        if (sqlite3_exec(data->db, ENABLE_SYNC, NULL, NULL, NULL) != SQLITE_OK)
+        {
+            goto error;
+        }
+    }
+
     return 0;
 
 error:
