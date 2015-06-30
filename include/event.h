@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -70,6 +70,8 @@ scriba_list_t *scriba_getEventsByCompany(scriba_id_t id);
 scriba_list_t *scriba_getEventsByPOC(scriba_id_t id);
 // get all events associated with given project
 scriba_list_t *scriba_getEventsByProject(scriba_id_t id);
+// get all events with given state
+scriba_list_t *scriba_getEventsByState(enum ScribaEventState state);
 // add new event to the database
 void scriba_addEvent(const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,

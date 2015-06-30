@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -59,6 +59,12 @@ scriba_list_t *scriba_getEventsByPOC(scriba_id_t id)
 scriba_list_t *scriba_getEventsByProject(scriba_id_t id)
 {
     return (fTbl->getEventsByProject(id));
+}
+
+// get all events with given state
+scriba_list_t *scriba_getEventsByState(enum ScribaEventState state)
+{
+    return (fTbl->getEventsByState(state));
 }
 
 // add new event to the database

@@ -1713,6 +1713,24 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsBy
     return java_events;
 }
 
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getEventsByState(JNIEnv *env,
+                                                                                      jclass this,
+                                                                                      jbyte state)
+{
+    jobjectArray java_events = NULL;
+    scriba_list_t *events = NULL;
+
+    events = scriba_getEventsByState((enum ScribaEventState)state);
+    if (events == NULL)
+    {
+        return NULL;
+    }
+
+    java_events = scriba_list_to_data_descr_array(env, this, events);
+    scriba_list_delete(events);
+    return java_events;
+}
+
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addEvent(JNIEnv *env,
                                                                       jclass this,
                                                                       jstring descr,

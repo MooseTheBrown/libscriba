@@ -155,6 +155,7 @@ static scriba_list_t *getEventsByDescr(const char *descr);
 static scriba_list_t *getEventsByCompany(scriba_id_t id);
 static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
+static scriba_list_t *getEventsByState(enum ScribaEventState state);
 static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state);
@@ -263,6 +264,7 @@ int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTb
     fTbl->getEventsByCompany = getEventsByCompany;
     fTbl->getEventsByPOC = getEventsByPOC;
     fTbl->getEventsByProject = getEventsByProject;
+    fTbl->getEventsByState = getEventsByState;
     fTbl->addEvent = addEvent;
     fTbl->updateEvent = updateEvent;
     fTbl->removeEvent = removeEvent;
@@ -1284,6 +1286,76 @@ static scriba_list_t *getEventsByPOC(scriba_id_t id)
 static scriba_list_t *getEventsByProject(scriba_id_t id)
 {
     return eventSearch("SELECT id,descr FROM Events WHERE project_id=?", id);
+}
+
+static scriba_list_t *getEventsByState(enum ScribaEventState state)
+{
+    scriba_list_t *events = scriba_list_init();
+    sqlite3_stmt *stmt = NULL;
+    char query[] = "SELECT id,descr FROM Events WHERE state=?";
+
+    if ((data == NULL) || (query == NULL))
+    {
+        goto exit;
+    }
+
+    // prepare query
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_int64(stmt, 1, (sqlite_int64)state) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    // execute query and retrieve results
+    while (1)
+    {
+        int ret = sqlite3_step(stmt);
+        if (ret == SQLITE_BUSY)
+        {
+            // retry
+            continue;
+        }
+        else if (ret == SQLITE_ROW)
+        {
+            // we have the data
+            // event id and description fields are selected from the table
+            scriba_id_t id;
+            scriba_id_from_blob(sqlite3_column_blob(stmt, 0), &id);
+            const char *descr = sqlite3_column_text(stmt, 1);
+            int len = strlen(descr);
+            if (len > 0)
+            {
+                char *event_descr = (char *)malloc(len + 1);
+                strcpy(event_descr, descr);
+                scriba_list_add(events, id, event_descr);
+                free(event_descr);
+            }
+            else
+            {
+                scriba_list_add(events, id, NULL);
+            }
+        }
+        else if (ret == SQLITE_DONE)
+        {
+            break;
+        }
+        else
+        {
+            // this should not happen
+            goto exit;
+        }
+    }
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    return events;
 }
 
 static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, scriba_id_t poc_id,

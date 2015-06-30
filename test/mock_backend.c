@@ -50,6 +50,7 @@ static scriba_list_t *getEventsByDescr(const char *descr);
 static scriba_list_t *getEventsByCompany(scriba_id_t id);
 static scriba_list_t *getEventsByPOC(scriba_id_t id);
 static scriba_list_t *getEventsByProject(scriba_id_t id);
+static scriba_list_t *getEventsByState(enum ScribaEventState state);
 static void addEvent(scriba_id_t id, const char *descr, scriba_id_t company_id, scriba_id_t poc_id,
                      scriba_id_t project_id, enum ScribaEventType type, const char *outcome,
                      scriba_time_t timestamp, enum ScribaEventState state);
@@ -155,6 +156,7 @@ static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncT
     fTbl->getEventsByCompany = getEventsByCompany;
     fTbl->getEventsByPOC = getEventsByPOC;
     fTbl->getEventsByProject = getEventsByProject;
+    fTbl->getEventsByState = getEventsByState;
     fTbl->addEvent = addEvent;
     fTbl->updateEvent = updateEvent;
     fTbl->removeEvent = removeEvent;
@@ -574,6 +576,24 @@ static scriba_list_t *getEventsByProject(scriba_id_t id)
     while (event != NULL)
     {
         if (scriba_id_compare(&(event->data->project_id), &id))
+        {
+            scriba_list_add(list, event->data->id, event->data->descr);
+        }
+
+        event = event->next;
+    }
+
+    return list;
+}
+
+static scriba_list_t *getEventsByState(enum ScribaEventState state)
+{
+    scriba_list_t *list = scriba_list_init();
+    struct MockEventList *event = mockData.events;
+
+    while (event != NULL)
+    {
+        if (event->data->state == state)
         {
             scriba_list_add(list, event->data->id, event->data->descr);
         }

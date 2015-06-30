@@ -163,6 +163,14 @@ public class EventTest {
     }
 
     @Test
+    public void testSearchByState() {
+        DataDescriptor[] events = ScribaDB.getEventsByState(Event.State.SCHEDULED);
+        assertEquals("1 scheduled event", 1, events.length);
+        Event event = ScribaDB.getEvent(events[0].id);
+        assertTrue("event descr match", event.descr.equals("Blahblah"));
+    }
+
+    @Test
     public void testUpdateEvent() {
         DataDescriptor[] events = ScribaDB.getEventsByCompany(_company1_id);
         Event event = ScribaDB.getEvent(events[0].id);

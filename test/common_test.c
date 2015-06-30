@@ -578,6 +578,25 @@ void test_event()
     CU_ASSERT_EQUAL(event2->timestamp, cur_time + 100);
     CU_ASSERT_EQUAL(event2->state, EVENT_STATE_COMPLETED);
 
+    scriba_list_delete(events);
+    scriba_freeEventData(event2);
+    event2 = NULL;
+
+    events = scriba_getEventsByState(EVENT_STATE_COMPLETED);
+    CU_ASSERT_FALSE(scriba_list_is_empty(events));
+    CU_ASSERT(scriba_list_is_empty(events->next));
+    event2 = scriba_getEvent(events->id);
+    CU_ASSERT_PTR_NOT_NULL(event2);
+    CU_ASSERT(scriba_id_compare(&(event2->id), &(events->id)));
+    CU_ASSERT_STRING_EQUAL(event2->descr, "Test event #2");
+    CU_ASSERT(scriba_id_compare(&(event2->company_id), &(companies->next->id)));
+    CU_ASSERT(scriba_id_compare(&(event2->poc_id), &(people2->id)));
+    CU_ASSERT(scriba_id_compare(&(event2->project_id), &(projects->next->id)));
+    CU_ASSERT_EQUAL(event2->type, EVENT_TYPE_CALL);
+    CU_ASSERT_STRING_EQUAL(event2->outcome, "Missed");
+    CU_ASSERT_EQUAL(event2->timestamp, cur_time + 100);
+    CU_ASSERT_EQUAL(event2->state, EVENT_STATE_COMPLETED);
+
     // update the second event and verify
     event2->type = EVENT_TYPE_TASK;
     event2->state = EVENT_STATE_SCHEDULED;

@@ -108,6 +108,7 @@ public final class ScribaDB {
     public static native DataDescriptor[] getEventsByCompany(UUID company_id);
     public static native DataDescriptor[] getEventsByPOC(UUID poc_id);
     public static native DataDescriptor[] getEventsByProject(UUID project_id);
+    public static native DataDescriptor[] getEventsByState(byte state);
     public static native void addEvent(String descr, UUID company_id, UUID poc_id, UUID project_id, byte type, String outcome, long timestamp, byte state);
     public static native void updateEvent(Event event);
     public static native void removeEvent(UUID id);
