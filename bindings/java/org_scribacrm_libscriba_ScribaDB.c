@@ -274,7 +274,7 @@ static jstring utf8_to_java_string(JNIEnv *env, jclass this, const char *utf8)
     {
         bytes[i] = utf8[i];
     }
-    (*env)->ReleaseByteArrayElements(env, byteArray, bytes, JNI_COMMIT);
+    (*env)->ReleaseByteArrayElements(env, byteArray, bytes, 0);
 
     result = (*env)->CallStaticObjectMethod(env, this, methodID, byteArray);
     return result;
@@ -351,7 +351,7 @@ static jobjectArray scriba_list_to_data_descr_array(JNIEnv *env, jclass this, sc
             }
 
             data_descriptors[i] = (*env)->NewObject(env, data_descr_class,
-                                                    part_constructor_id, part_id);
+                                                    part_constructor_id, (jlong)part_id);
             if (data_descriptors[i] == NULL)
             {
                 goto exit;
