@@ -720,7 +720,6 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEn
     jobjectArray poc_list = NULL;
     jobjectArray proj_list = NULL;
     jobjectArray event_list = NULL;
-    char *inn_string = NULL;
     jmethodID company_ctor_id = NULL;
     scriba_id_t company_id;
 
@@ -743,11 +742,7 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEn
     address = utf8_to_java_string(env, this, company->address);
     phonenum = utf8_to_java_string(env, this, company->phonenum);
     email = utf8_to_java_string(env, this, company->email);
-    inn_string = scriba_inn_to_string(&(company->inn));
-    if (inn_string != NULL)
-    {
-        inn = utf8_to_java_string(env, this, inn_string);
-    }
+    inn = utf8_to_java_string(env, this, company->inn);
     poc_list = scriba_list_to_data_descr_array(env, this, company->poc_list);
     proj_list = scriba_list_to_data_descr_array(env, this, company->proj_list);
     event_list = scriba_list_to_data_descr_array(env, this, company->event_list);
@@ -774,10 +769,6 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getCompany(JNIEn
                                      poc_list, proj_list, event_list);
 
 exit:
-    if (inn_string != NULL)
-    {
-        free(inn_string);
-    }
     if (company != NULL)
     {
         scriba_freeCompanyData(company);
@@ -873,8 +864,7 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addCompany(JNIEnv *
     char *address = java_string_to_utf8(env, this, java_address);
     char *phonenum = java_string_to_utf8(env, this, java_phonenum);
     char *email = java_string_to_utf8(env, this, java_email);
-    char *inn_string = java_string_to_utf8(env, this, java_inn);
-    scriba_inn_t inn = scriba_inn_from_string(inn_string);
+    char *inn = java_string_to_utf8(env, this, java_inn);
 
     scriba_addCompany(name, jur_name, address, inn, phonenum, email);
 
@@ -894,9 +884,9 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addCompany(JNIEnv *
     {
         free(phonenum);
     }
-    if (inn_string != NULL)
+    if (inn != NULL)
     {
-        free(inn_string);
+        free(inn);
     }
     if (email != NULL)
     {
@@ -911,7 +901,6 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateCompany(JNIEn
     jclass company_class = NULL;
     struct ScribaCompany *company = NULL;
     jfieldID fieldID = NULL;
-    char *inn_string = NULL;
     jobject company_id = NULL;
 
     if (java_company == NULL)
@@ -972,9 +961,9 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateCompany(JNIEn
     {
         goto exit;
     }
-    inn_string = java_string_to_utf8(env, this,
-                                     (jstring)((*env)->GetObjectField(env, java_company, fieldID)));
-    company->inn = scriba_inn_from_string(inn_string);
+    company->inn = java_string_to_utf8(env, this,
+                                       (jstring)((*env)->GetObjectField(env,
+                                        java_company, fieldID)));
 
     fieldID = (*env)->GetFieldID(env, company_class, "phonenum", "Ljava/lang/String;");
     if (fieldID == NULL)
@@ -998,10 +987,6 @@ exit:
     if (company != NULL)
     {
         scriba_freeCompanyData(company);
-    }
-    if (inn_string != NULL)
-    {
-        free(inn_string);
     }
 }
 

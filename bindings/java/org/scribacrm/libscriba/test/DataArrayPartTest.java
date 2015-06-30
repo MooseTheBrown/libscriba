@@ -37,10 +37,13 @@ public class DataArrayPartTest {
         descr.name = "scriba_sqlite";
         descr.type = ScribaDB.DBType.BUILTIN;
 
-        ScribaDB.DBParam[] params = new ScribaDB.DBParam[1];
+        ScribaDB.DBParam[] params = new ScribaDB.DBParam[2];
         params[0] = new ScribaDB.DBParam();
         params[0].key = "db_loc";
         params[0].value = testDBLocation;
+        params[1] = new ScribaDB.DBParam();
+        params[1].key = "db_sync";
+        params[1].value = "off";
 
         ScribaDB.init(descr, params);
 

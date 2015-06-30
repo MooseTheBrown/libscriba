@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Mikhail Sapozhnikov
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -204,10 +204,9 @@ static fb::Offset<Company> serialize_company(scriba_id_t id, fb::FlatBufferBuild
     {
         company_address = fbb.CreateString(company->address);
     }
-    char *inn = scriba_inn_to_string(&(company->inn));
-    if (inn != NULL)
+    if (company->inn != NULL)
     {
-        company_inn = fbb.CreateString(inn);
+        company_inn = fbb.CreateString(company->inn);
     }
     if (company->phonenum != NULL)
     {
@@ -232,7 +231,7 @@ static fb::Offset<Company> serialize_company(scriba_id_t id, fb::FlatBufferBuild
     {
         cb.add_address(company_address);
     }
-    if (inn != NULL)
+    if (company->inn != NULL)
     {
         cb.add_inn(company_inn);
     }
@@ -246,7 +245,6 @@ static fb::Offset<Company> serialize_company(scriba_id_t id, fb::FlatBufferBuild
     }
 
     scriba_freeCompanyData(company);
-    std::free(inn);
     return cb.Finish();
 }
 
@@ -502,7 +500,7 @@ static bool deserialize_company(const Company *company, enum ScribaMergeStrategy
             updated_company.name = company_name;
             updated_company.jur_name = company_jur_name;
             updated_company.address = company_address;
-            updated_company.inn = scriba_inn_from_string(company_inn);
+            updated_company.inn = company_inn;
             updated_company.phonenum = company_phonenum;
             updated_company.email = company_email;
             scriba_updateCompany(&updated_company);
@@ -521,7 +519,7 @@ static bool deserialize_company(const Company *company, enum ScribaMergeStrategy
                                 company_name,
                                 company_jur_name,
                                 company_address,
-                                scriba_inn_from_string(company_inn),
+                                company_inn,
                                 company_phonenum,
                                 company_email);
     }

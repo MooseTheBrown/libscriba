@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -120,7 +120,7 @@ static char *str_for_like_op(const char *src);
 // create company data structure based on given parameters
 static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
                                              const char *jur_name, const char *addr,
-                                             scriba_inn_t inn, const char *phonenum,
+                                             const char *inn, const char *phonenum,
                                              const char *email);
 
 // common company search routine
@@ -133,7 +133,7 @@ static scriba_list_t *getCompaniesByName(const char *name);
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name);
 static scriba_list_t *getCompaniesByAddress(const char *address);
 static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
-                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *address, const char *inn, const char *phonenum,
                        const char *email);
 static void updateCompany(const struct ScribaCompany *company);
 static void removeCompany(scriba_id_t id);
@@ -445,7 +445,7 @@ static char *str_for_like_op(const char *src)
 // create company data structure based on given parameters
 static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
                                              const char *jur_name, const char *addr,
-                                             scriba_inn_t inn, const char *phonenum,
+                                             const char *inn, const char *phonenum,
                                              const char *email)
 {
     int len = 0;
@@ -484,7 +484,15 @@ static struct ScribaCompany *fillCompanyData(scriba_id_t id, const char *name,
             strcpy(company->address, addr);
         }
     }
-    scriba_copy_inn(&(company->inn), &inn);
+    if (inn != NULL)
+    {
+        len = strlen(inn);
+        if (len != 0)
+        {
+            company->inn = (char *)malloc(len + 1);
+            strcpy(company->inn, inn);
+        }
+    }
     if (phonenum != NULL)
     {
         len = strlen(phonenum);
@@ -640,7 +648,7 @@ static struct ScribaCompany *getCompany(scriba_id_t id)
     const char *name = (const char *)sqlite3_column_text(sqlite_stmt, 1);
     const char *jur_name = (const char *)sqlite3_column_text(sqlite_stmt, 2);
     const char *address = (const char *)sqlite3_column_text(sqlite_stmt, 3);
-    scriba_inn_t inn = scriba_inn_from_string((const char *)sqlite3_column_text(sqlite_stmt, 4));
+    const char *inn = (const char *)sqlite3_column_text(sqlite_stmt, 4);
     const char *phonenum = (const char *)sqlite3_column_text(sqlite_stmt, 5);
     const char *email = (const char *)sqlite3_column_text(sqlite_stmt, 6);
 
@@ -712,13 +720,12 @@ static scriba_list_t *getCompaniesByAddress(const char *address)
 }
 
 static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
-                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *address, const char *inn, const char *phonenum,
                        const char *email)
 {
     sqlite3_stmt *stmt = NULL;
     char query[] = "INSERT INTO Companies(id, name, jur_name, address, inn, phonenum, email) "
                    "VALUES(?,?,?,?,?,?,?)";
-    char *inn_str = NULL;
     void *id_blob = NULL;
 
     if (data == NULL)
@@ -752,8 +759,7 @@ static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
     {
         goto exit;
     }
-    inn_str = scriba_inn_to_string(&inn);
-    if (sqlite3_bind_text(stmt, 5, inn_str, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 5, inn, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -782,10 +788,6 @@ static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
     }
 
 exit:
-    if (inn_str != NULL)
-    {
-        free(inn_str);
-    }
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);
@@ -801,7 +803,6 @@ static void updateCompany(const struct ScribaCompany *company)
     sqlite3_stmt *stmt = NULL;
     char query[] = "UPDATE Companies SET name=?,jur_name=?,address=?,inn=?,phonenum=?,email=?"
                    "WHERE id=?";
-    char *inn_str = NULL;
     void *id_blob = NULL;
 
     if ((company == NULL) || (data == NULL))
@@ -825,8 +826,7 @@ static void updateCompany(const struct ScribaCompany *company)
     {
         goto exit;
     }
-    inn_str = scriba_inn_to_string(&(company->inn));
-    if (sqlite3_bind_text(stmt, 4, inn_str, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    if (sqlite3_bind_text(stmt, 4, company->inn, -1, SQLITE_TRANSIENT) != SQLITE_OK)
     {
         goto exit;
     }
@@ -864,10 +864,6 @@ static void updateCompany(const struct ScribaCompany *company)
     }
 
 exit:
-    if (inn_str != NULL)
-    {
-        free(inn_str);
-    }
     if (stmt != NULL)
     {
         sqlite3_finalize(stmt);

@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -57,7 +57,7 @@ scriba_list_t *scriba_getCompaniesByAddress(const char *address)
 
 // add new company to the database
 void scriba_addCompany(const char *name, const char *jur_name, const char *address,
-                       scriba_inn_t inn, const char *phonenum, const char *email)
+                       const char *inn, const char *phonenum, const char *email)
 {
     scriba_id_t company_id;
 
@@ -67,7 +67,7 @@ void scriba_addCompany(const char *name, const char *jur_name, const char *addre
 
 // add company with given id to the database
 void scriba_addCompanyWithID(scriba_id_t id, const char *name, const char *jur_name,
-                             const char *address, scriba_inn_t inn, const char *phonenum,
+                             const char *address, const char *inn, const char *phonenum,
                              const char *email)
 {
     fTbl->addCompany(id, name, jur_name, address, inn, phonenum, email);
@@ -115,8 +115,13 @@ struct ScribaCompany *scriba_copyCompany(const struct ScribaCompany *company)
         ret->address = (char *)malloc(len + 1);
         memset(ret->address, 0, len + 1);
         strncpy(ret->address, company->address, len);
-    } 
-    scriba_copy_inn(&(ret->inn), &(company->inn));
+    }
+    if ((len = strlen(company->inn)) != 0)
+    {
+        ret->inn = (char *)malloc(len + 1);
+        memset(ret->inn, 0, len + 1);
+        strncpy(ret->inn, company->inn, len);
+    }
     if ((len = strlen(company->phonenum)) != 0)
     {
         ret->phonenum = (char *)malloc(len + 1);
@@ -152,6 +157,10 @@ void scriba_freeCompanyData(struct ScribaCompany *company)
     if (company->address != NULL)
     {
         free(company->address);
+    }
+    if (company->inn != NULL)
+    {
+        free(company->inn);
     }
     if (company->phonenum != NULL)
     {

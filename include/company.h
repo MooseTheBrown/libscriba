@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -35,7 +35,7 @@ struct ScribaCompany
     char *name;                     // company name
     char *jur_name;                 // juridicial name of the company
     char *address;                  // company address
-    scriba_inn_t inn;               // tax payer id (INN) of the company
+    char *inn;                      // tax payer id (INN) of the company
     char *phonenum;                 // official company phone number
     char *email;                    // official company email
     scriba_list_t *poc_list;        // list of people associated with the company
@@ -55,10 +55,10 @@ scriba_list_t *scriba_getCompaniesByJurName(const char *juridicial_name);
 scriba_list_t *scriba_getCompaniesByAddress(const char *address);
 // add new company to the database
 void scriba_addCompany(const char *name, const char *jur_name, const char *address,
-                       scriba_inn_t inn, const char *phonenum, const char *email);
+                       const char *inn, const char *phonenum, const char *email);
 // add company with given id to the database
 void scriba_addCompanyWithID(scriba_id_t id, const char *name, const char *jur_name,
-                             const char *address, scriba_inn_t inn, const char *phonenum,
+                             const char *address, const char *inn, const char *phonenum,
                              const char *email);
 // update company info
 void scriba_updateCompany(const struct ScribaCompany *company);

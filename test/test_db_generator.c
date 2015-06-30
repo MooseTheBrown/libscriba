@@ -217,7 +217,7 @@ int main(int argc, char **argv)
         snprintf(email, 50, "company%d@test.com", a + 1);
 
         scriba_addCompanyWithID(company_id, name, jur_name, addr,
-                                scriba_inn_from_string(inn), phone, email);
+                                inn, phone, email);
         entries++;
 
         for (int b = 0; b < params.people_per_company; b++)

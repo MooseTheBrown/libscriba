@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -37,7 +37,7 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getCompaniesByJurName)(const char *);
     scriba_list_t* (*getCompaniesByAddress)(const char *);
     void (*addCompany)(scriba_id_t, const char *, const char *,
-                       const char *, scriba_inn_t, const char *,
+                       const char *, const char *, const char *,
                        const char *);
     void (*updateCompany)(const struct ScribaCompany *);
     void (*removeCompany)(scriba_id_t);

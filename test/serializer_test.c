@@ -253,10 +253,10 @@ static void create_test_data()
     scriba_id_create(&event2_id);
 
     scriba_addCompanyWithID(company1_id, "TestCompany1", "TestCompany1 LLC", "SomeAddress1",
-                            scriba_inn_from_string("0123456789"), "111",
+                            "0123456789", "111",
                             "testcompany@test1.com");
     scriba_addCompanyWithID(company2_id, "TestCompany2", "TestCompany2 LLC", "SomeAddress2",
-                            scriba_inn_from_string("9876543210"), "222",
+                            "9876543210", "222",
                             "testcompany@test2.com");
 
     scriba_addPOCWithID(poc1_id, "Moose", "Moosevich", "Moose", "333", "3333",
@@ -286,8 +286,7 @@ static void verify_test_data()
     CU_ASSERT_STRING_EQUAL(company1->name, "TestCompany1");
     CU_ASSERT_STRING_EQUAL(company1->jur_name, "TestCompany1 LLC");
     CU_ASSERT_STRING_EQUAL(company1->address, "SomeAddress1");
-    scriba_inn_t inn1 = scriba_inn_from_string("0123456789");
-    CU_ASSERT(scriba_inn_is_equal(&(company1->inn), &inn1));
+    CU_ASSERT_STRING_EQUAL(company1->inn, "0123456789");
     CU_ASSERT_STRING_EQUAL(company1->phonenum, "111");
     CU_ASSERT_STRING_EQUAL(company1->email, "testcompany@test1.com");
     scriba_freeCompanyData(company1);
@@ -298,8 +297,7 @@ static void verify_test_data()
     CU_ASSERT_STRING_EQUAL(company2->name, "TestCompany2");
     CU_ASSERT_STRING_EQUAL(company2->jur_name, "TestCompany2 LLC");
     CU_ASSERT_STRING_EQUAL(company2->address, "SomeAddress2");
-    scriba_inn_t inn2 = scriba_inn_from_string("9876543210");
-    CU_ASSERT(scriba_inn_is_equal(&(company2->inn), &inn2));
+    CU_ASSERT_STRING_EQUAL(company2->inn, "9876543210");
     CU_ASSERT_STRING_EQUAL(company2->phonenum, "222");
     CU_ASSERT_STRING_EQUAL(company2->email, "testcompany@test2.com");
     scriba_freeCompanyData(company2);
@@ -388,10 +386,10 @@ static void create_ru_test_data()
     scriba_id_create(&event2_id);
 
     scriba_addCompanyWithID(company1_id, "Компания1", "ООО к1", "адрес1",
-                            scriba_inn_from_string("0123456789"), "111",
+                            "0123456789", "111",
                             "testcompany@test1.com");
     scriba_addCompanyWithID(company2_id, "Компания2", "ООО к2", "адрес2",
-                            scriba_inn_from_string("9876543210"), "222",
+                            "9876543210", "222",
                             "testcompany@test2.com");
 
     scriba_addPOCWithID(poc1_id, "Лось", "Лосевич", "Лосев", "333", "3333",
@@ -420,8 +418,7 @@ static void verify_ru_test_data()
     CU_ASSERT_STRING_EQUAL(company1->name, "Компания1");
     CU_ASSERT_STRING_EQUAL(company1->jur_name, "ООО к1");
     CU_ASSERT_STRING_EQUAL(company1->address, "адрес1");
-    scriba_inn_t inn1 = scriba_inn_from_string("0123456789");
-    CU_ASSERT(scriba_inn_is_equal(&(company1->inn), &inn1));
+    CU_ASSERT_STRING_EQUAL(company1->inn, "0123456789");
     CU_ASSERT_STRING_EQUAL(company1->phonenum, "111");
     CU_ASSERT_STRING_EQUAL(company1->email, "testcompany@test1.com");
     scriba_freeCompanyData(company1);
@@ -432,8 +429,7 @@ static void verify_ru_test_data()
     CU_ASSERT_STRING_EQUAL(company2->name, "Компания2");
     CU_ASSERT_STRING_EQUAL(company2->jur_name, "ООО к2");
     CU_ASSERT_STRING_EQUAL(company2->address, "адрес2");
-    scriba_inn_t inn2 = scriba_inn_from_string("9876543210");
-    CU_ASSERT(scriba_inn_is_equal(&(company2->inn), &inn2));
+    CU_ASSERT_STRING_EQUAL(company2->inn, "9876543210");
     CU_ASSERT_STRING_EQUAL(company2->phonenum, "222");
     CU_ASSERT_STRING_EQUAL(company2->email, "testcompany@test2.com");
     scriba_freeCompanyData(company2);

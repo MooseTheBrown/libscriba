@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -211,90 +211,6 @@ void scriba_id_copy(scriba_id_t *dest, const scriba_id_t *src)
 
     dest->_high = src->_high;
     dest->_low = src->_low;
-}
-
-/* INN type handling routines */
-
-// create inn value from ASCII string representation
-scriba_inn_t scriba_inn_from_string(const char *str)
-{
-    int len = 0;
-    scriba_inn_t inn;
-
-    memset((void *)&(inn.digits), 0, INN_DIGITS);
-
-    if (str == NULL)
-    {
-        goto exit;
-    }
-
-    len = strlen(str);
-
-    // string must be exactly INN_DIGITS long
-    if (len == INN_DIGITS)
-    {
-        for (int i = 0; i < INN_DIGITS; i++)
-        {
-            inn.digits[i] = str[i] - '0';
-        }
-    }
-
-exit:
-    return inn;
-}
-
-// create ASCII string representation of inn value
-char *scriba_inn_to_string(const scriba_inn_t *inn)
-{
-    if (inn == NULL)
-    {
-        return NULL;
-    }
-
-    char *ret = (char *)malloc(INN_DIGITS + 1);
-    if (ret != NULL)
-    {
-        for (int i = 0; i < INN_DIGITS; i++)
-        {
-            ret[i] = inn->digits[i] + '0';
-        }
-        ret[INN_DIGITS] = 0;
-    }
-
-    return ret;
-}
-
-// compare two inn values; returns 1 (true) or 0 (false)
-int scriba_inn_is_equal(const scriba_inn_t *inn1, const scriba_inn_t *inn2)
-{
-    int ret = 1;
-
-    if ((inn1 != NULL) && (inn2 != NULL))
-    {
-        for (int i = 0; i < INN_DIGITS; i++)
-        {
-            if (inn1->digits[i] != inn2->digits[i])
-            {
-                ret = 0;
-                break;
-            }
-        }
-    }
-    else
-    {
-        ret = 0;
-    }
-
-    return ret;
-}
-
-// copy inn value from source to destination
-void scriba_copy_inn(scriba_inn_t *dest, const scriba_inn_t *src)
-{
-    if ((dest != NULL) && (src != NULL))
-    {
-        memcpy((void*)&(dest->digits), (void*)&(src->digits), INN_DIGITS);
-    }
 }
 
 /* List type handling routines */

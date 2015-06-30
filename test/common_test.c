@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Mikhail Sapozhnikov
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -34,12 +34,10 @@ void test_company()
     scriba_list_t *companies = NULL;
     struct ScribaCompany *company = NULL;
     struct ScribaCompany *company1 = NULL;
-    scriba_inn_t inn1 = scriba_inn_from_string("0123456789");
-    scriba_inn_t inn2 = scriba_inn_from_string("9876543210");
 
     // add the first company and verify it's been added
     scriba_addCompany("Test company #1", "Test1 LLC", "Test Address 1",
-                      inn1, "111", "test1@test1.com");
+                      "012345678901", "111", "test1@test1.com");
     companies = scriba_getAllCompanies();
     CU_ASSERT_FALSE(scriba_list_is_empty(companies));
     CU_ASSERT(scriba_list_is_empty(companies->next));
@@ -49,7 +47,7 @@ void test_company()
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #1");
     CU_ASSERT_STRING_EQUAL(company->jur_name, "Test1 LLC");
     CU_ASSERT_STRING_EQUAL(company->address, "Test Address 1");
-    CU_ASSERT(scriba_inn_is_equal(&(company->inn), &inn1));
+    CU_ASSERT_STRING_EQUAL(company->inn, "012345678901");
     CU_ASSERT_STRING_EQUAL(company->phonenum, "111");
     CU_ASSERT_STRING_EQUAL(company->email, "test1@test1.com");
     CU_ASSERT(scriba_list_is_empty(company->poc_list));
@@ -62,7 +60,7 @@ void test_company()
 
     // add the second company and verify it's been added
     scriba_addCompany("Test company #2", "Test2 LLC", "Test Address 2",
-                      inn2, "222", "test2@test2.com");
+                      "987654321055", "222", "test2@test2.com");
     companies = scriba_getAllCompanies();
     CU_ASSERT_FALSE(scriba_list_is_empty(companies));
     CU_ASSERT_FALSE(scriba_list_is_empty(companies->next));
@@ -73,7 +71,7 @@ void test_company()
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #2");
     CU_ASSERT_STRING_EQUAL(company->jur_name, "Test2 LLC");
     CU_ASSERT_STRING_EQUAL(company->address, "Test Address 2");
-    CU_ASSERT(scriba_inn_is_equal(&(company->inn), &inn2));
+    CU_ASSERT_STRING_EQUAL(company->inn, "987654321055");
     CU_ASSERT_STRING_EQUAL(company->phonenum, "222");
     CU_ASSERT_STRING_EQUAL(company->email, "test2@test2.com");
     CU_ASSERT(scriba_list_is_empty(company->poc_list));
@@ -127,7 +125,7 @@ void test_company()
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #1");
     CU_ASSERT_STRING_EQUAL(company->jur_name, "Test1 LLC");
     CU_ASSERT_STRING_EQUAL(company->address, "Test Address 1");
-    CU_ASSERT(scriba_inn_is_equal(&(company->inn), &inn1));
+    CU_ASSERT_STRING_EQUAL(company->inn, "012345678901");
     CU_ASSERT_STRING_EQUAL(company->phonenum, "111");
     CU_ASSERT_STRING_EQUAL(company->email, "test1@test1.com");
     CU_ASSERT(scriba_list_is_empty(company->poc_list));
@@ -148,7 +146,7 @@ void test_company()
     CU_ASSERT_STRING_EQUAL(company->name, "Test company #1");
     CU_ASSERT_STRING_EQUAL(company->jur_name, "Test1 LLC");
     CU_ASSERT_STRING_EQUAL(company->address, "New Test Address 1");
-    CU_ASSERT(scriba_inn_is_equal(&(company->inn), &inn1));
+    CU_ASSERT_STRING_EQUAL(company->inn, "012345678901");
     CU_ASSERT_STRING_EQUAL(company->phonenum, "111");
     CU_ASSERT_STRING_EQUAL(company->email, "test1@test1.com");
     CU_ASSERT(scriba_list_is_empty(company->poc_list));
@@ -186,15 +184,13 @@ void test_poc()
     struct ScribaPoc *poc3 = NULL;
     struct ScribaPoc *poc4 = NULL;
     struct ScribaCompany *company = NULL;
-    scriba_inn_t inn1 = scriba_inn_from_string("0123456789");
-    scriba_inn_t inn2 = scriba_inn_from_string("9876543210");
     int count = 0;
 
     // add test companies
     scriba_addCompany("Test company #1", "Test1 LLC", "Test Address 1",
-                      inn1, "111", "test1@test1.com");
+                      "12345", "111", "test1@test1.com");
     scriba_addCompany("Test company #2", "Test2 LLC", "Test Address 2",
-                      inn2, "222", "test2@test2.com");
+                      "54321", "222", "test2@test2.com");
 
     companies = scriba_getAllCompanies();
 
@@ -378,12 +374,10 @@ void test_project()
     struct ScribaProject *project2 = NULL;
     struct ScribaProject *project3 = NULL;
     struct ScribaCompany *company = NULL;
-    scriba_inn_t inn1 = scriba_inn_from_string("0123456789");
-    scriba_inn_t inn2 = scriba_inn_from_string("9876543210");
 
     // add test company
     scriba_addCompany("Test company #1", "Test1 LLC", "Test Address 1",
-                      inn1, "111", "test1@test1.com");
+                      "12345", "111", "test1@test1.com");
 
     companies = scriba_getAllCompanies();
 
@@ -488,16 +482,14 @@ void test_event()
     struct ScribaEvent *event3 = NULL;
     struct ScribaEvent *event4 = NULL;
     struct ScribaCompany *company = NULL;
-    scriba_inn_t inn1 = scriba_inn_from_string("0123456789");
-    scriba_inn_t inn2 = scriba_inn_from_string("9876543210");
     int count = 0;
     scriba_time_t cur_time = time(NULL);
 
     // add test data - companies, people, projects
     scriba_addCompany("Test company #1", "Test1 LLC", "Test Address 1",
-                      inn1, "111", "test1@test1.com");
+                      "12345", "111", "test1@test1.com");
     scriba_addCompany("Test company #2", "Test2 LLC", "Test Address 2",
-                      inn2, "222", "test2@test2.com");
+                      "54321", "222", "test2@test2.com");
 
     companies = scriba_getAllCompanies();
 
@@ -651,7 +643,7 @@ void test_create_with_id()
 
     scriba_id_create(&company_id);
     scriba_addCompanyWithID(company_id, "TestCompany", "TestCompany LLC", "SomeAddress",
-                            scriba_inn_from_string("0123456789"), "333-22-11",
+                            "0123456789", "333-22-11",
                             "testcompany@test.com");
     struct ScribaCompany *company = scriba_getCompany(company_id);
     CU_ASSERT_PTR_NOT_NULL(company);
@@ -708,13 +700,13 @@ void test_company_search()
     scriba_id_create(&company3_id);
 
     scriba_addCompanyWithID(company1_id, "Test Company 1", "SomethingUnique",
-                            "unknown", scriba_inn_from_string("0123456789"), "555",
+                            "unknown", "0123456789", "555",
                             "test@test.com");
     scriba_addCompanyWithID(company2_id, "Test Company 2", "Test2 LLC",
-                            "addr2", scriba_inn_from_string("0123456789"), "555",
+                            "addr2", "0123456789", "555",
                             "test@test.com");
     scriba_addCompanyWithID(company3_id, "Different_company", "Test3 LLC",
-                            "addr3", scriba_inn_from_string("0123456789"), "555",
+                            "addr3", "0123456789", "555",
                             "test@test.com");
 
     companies = scriba_getCompaniesByName("Test");
@@ -778,10 +770,10 @@ void test_ru_company_search()
     scriba_id_create(&company2_id);
 
     scriba_addCompanyWithID(company1_id, "Компания№1", "ООО Номер один",
-                            "неизвестно", scriba_inn_from_string("0123456789"), "555",
+                            "неизвестно", "0123456789", "555",
                             "test1@test.com");
     scriba_addCompanyWithID(company2_id, "другая компания", "ОАО рога и копыта",
-                            "адрес", scriba_inn_from_string("0123456789"), "555",
+                            "адрес", "0123456789", "555",
                             "test2@test.com");
 
     companies = scriba_getCompaniesByName("комп");

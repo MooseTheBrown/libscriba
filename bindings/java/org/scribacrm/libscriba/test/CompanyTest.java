@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -179,7 +179,7 @@ public class CompanyTest {
         Company company = ScribaDB.getCompany(companies[0].id);
         assertTrue("Company name match", company.name.equals("Null test company"));
         assertTrue("null jur name", company.jur_name == null);
-        assertTrue("null inn", company.inn.equals("0000000000"));
+        assertTrue("null inn", company.inn == null);
 
         ScribaDB.addCompany(null, null, "testaddr1", "1234567890", null, "test@test.com");
         companies = ScribaDB.getCompaniesByAddress("testaddr1");

@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -26,7 +26,6 @@ extern "C"
 {
 #endif
 
-#define INN_DIGITS              10      // number of digits in INN
 #define SCRIBA_ID_BLOB_SIZE     16      // size of scriba id binary blob in bytes
 
 // unique record id
@@ -59,23 +58,6 @@ void scriba_id_from_blob(const void *blob, scriba_id_t *id);
 
 // copy scriba id
 void scriba_id_copy(scriba_id_t *dest, const scriba_id_t *src);
-
-// tax payer ID (INN) type
-typedef struct
-{
-    unsigned char digits[INN_DIGITS];
-} scriba_inn_t;
-
-// create inn value from ASCII string representation
-scriba_inn_t scriba_inn_from_string(const char *str);
-/* create ASCII string representation of inn value
-   memory for returned string is allocated dynamically, it is up to calling code to free it
-   when it's no longer needed */
-char *scriba_inn_to_string(const scriba_inn_t *inn);
-// compare two inn values; returns 1 (true) or 0 (false)
-int scriba_inn_is_equal(const scriba_inn_t *inn1, const scriba_inn_t *inn2);
-// copy inn value from source to destination
-void scriba_copy_inn(scriba_inn_t *dest, const scriba_inn_t *src);
 
 // list of ids
 typedef struct _scriba_list

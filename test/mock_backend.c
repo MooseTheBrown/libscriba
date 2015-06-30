@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -38,7 +38,7 @@ static scriba_list_t *getCompaniesByName(const char *name);
 static scriba_list_t *getCompaniesByJurName(const char *juridicial_name);
 static scriba_list_t *getCompaniesByAddress(const char *address);
 static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
-                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *address, const char *inn, const char *phonenum,
                        const char *email);
 static void updateCompany(const struct ScribaCompany *company);
 static void removeCompany(scriba_id_t id);
@@ -325,7 +325,7 @@ static scriba_list_t *getCompaniesByAddress(const char *address)
 }
 
 static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
-                       const char *address, scriba_inn_t inn, const char *phonenum,
+                       const char *address, const char *inn, const char *phonenum,
                        const char *email)
 {
     struct ScribaCompany *new_company = (struct ScribaCompany *)malloc(sizeof (struct ScribaCompany));
@@ -352,7 +352,12 @@ static void addCompany(scriba_id_t id, const char *name, const char *jur_name,
         memset(new_company->address, 0, len + 1);
         strncpy(new_company->address, address, len);
     }
-    scriba_copy_inn(&new_company->inn, &inn);
+    if ((len = strlen(inn)) > 0)
+    {
+        new_company->inn = (char *)malloc(len + 1);
+        memset(new_company->inn, 0, len + 1);
+        strncpy(new_company->inn, inn, len);
+    }
     if ((len = strlen(phonenum)) > 0)
     {
         new_company->phonenum = (char *)malloc(len + 1);
@@ -453,6 +458,11 @@ static void free_company_data(struct ScribaCompany *company)
     {
         free(company->address);
         company->address = NULL;
+    }
+    if (company->inn != NULL)
+    {
+        free(company->inn);
+        company->inn = NULL;
     }
     if (company->phonenum != NULL)
     {
