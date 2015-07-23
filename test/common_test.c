@@ -383,7 +383,8 @@ void test_project()
 
     // add test project and verify that it's been added correctly
     scriba_addProject("Test Project #1", "100 bottles of whisky",
-                      companies->id, PROJECT_STATE_CONTRACT_SIGNED);
+                      companies->id, PROJECT_STATE_CONTRACT_SIGNED,
+                      SCRIBA_CURRENCY_RUB, 1000);
 
     projects = scriba_getAllProjects();
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));
@@ -396,12 +397,15 @@ void test_project()
     CU_ASSERT_STRING_EQUAL(project1->descr, "100 bottles of whisky");
     CU_ASSERT(scriba_id_compare(&(project1->company_id), &(companies->id)));
     CU_ASSERT_EQUAL(project1->state, PROJECT_STATE_CONTRACT_SIGNED);
+    CU_ASSERT_EQUAL(project1->currency, SCRIBA_CURRENCY_RUB);
+    CU_ASSERT_EQUAL(project1->cost, 1000);
 
     scriba_list_delete(projects);
 
     // add another project
     scriba_addProject("Test Project #2", "1000 bottles of milk",
-                      companies->id, PROJECT_STATE_REJECTED);
+                      companies->id, PROJECT_STATE_REJECTED,
+                      SCRIBA_CURRENCY_USD, 300);
 
     projects = scriba_getProjectsByCompany(companies->id);
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));
@@ -442,10 +446,12 @@ void test_project()
     CU_ASSERT_PTR_NOT_NULL(project3);
     CU_ASSERT_NOT_EQUAL(project3, project1);
     CU_ASSERT(scriba_id_compare(&(project3->id), &(project1->id)));
-    CU_ASSERT_STRING_EQUAL(project1->title, "Test Project #1");
-    CU_ASSERT_STRING_EQUAL(project1->descr, "100 bottles of whisky");
-    CU_ASSERT(scriba_id_compare(&(project1->company_id), &(companies->id)));
-    CU_ASSERT_EQUAL(project1->state, PROJECT_STATE_CONTRACT_SIGNED);
+    CU_ASSERT_STRING_EQUAL(project3->title, "Test Project #1");
+    CU_ASSERT_STRING_EQUAL(project3->descr, "100 bottles of whisky");
+    CU_ASSERT(scriba_id_compare(&(project3->company_id), &(companies->id)));
+    CU_ASSERT_EQUAL(project3->state, PROJECT_STATE_CONTRACT_SIGNED);
+    CU_ASSERT_EQUAL(project3->currency, SCRIBA_CURRENCY_RUB);
+    CU_ASSERT_EQUAL(project3->cost, 1000);
     scriba_freeProjectData(project3);
     project3 = NULL;
 
@@ -504,9 +510,11 @@ void test_event()
     people2 = scriba_getPOCByName("Pilyaev");
 
     scriba_addProject("Test Project #1", "100 bottles of whisky",
-                      companies->id, PROJECT_STATE_CONTRACT_SIGNED);
+                      companies->id, PROJECT_STATE_CONTRACT_SIGNED,
+                      SCRIBA_CURRENCY_RUB, 1000);
     scriba_addProject("Test Project #2", "100 bottles of rum",
-                      companies->id, PROJECT_STATE_CONTRACT_SIGNED);
+                      companies->id, PROJECT_STATE_CONTRACT_SIGNED,
+                      SCRIBA_CURRENCY_EUR, 1000);
 
     projects = scriba_getAllProjects();
 
@@ -686,7 +694,7 @@ void test_create_with_id()
     scriba_id_t project_id;
     scriba_id_create(&project_id);
     scriba_addProjectWithID(project_id, "TestProject", "test project", company_id,
-                            PROJECT_STATE_OFFER);
+                            PROJECT_STATE_OFFER, SCRIBA_CURRENCY_RUB, 1000);
     struct ScribaProject *project = scriba_getProject(project_id);
     CU_ASSERT_PTR_NOT_NULL(project);
     CU_ASSERT(scriba_id_compare(&project_id, &(project->id)));
@@ -1067,11 +1075,14 @@ void test_project_search()
     scriba_id_create(&company_id);
 
     scriba_addProjectWithID(proj1_id, "Shipbuilding", "",
-                            company_id, PROJECT_STATE_INITIAL);
+                            company_id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_RUB, 10000);
     scriba_addProjectWithID(proj2_id, "Looking at ships", "",
-                            company_id, PROJECT_STATE_INITIAL);
+                            company_id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_USD, 500);
     scriba_addProjectWithID(proj3_id, "Fishing", "",
-                            company_id, PROJECT_STATE_INITIAL);
+                            company_id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_EUR, 100);
 
     projects = scriba_getProjectsByTitle("ship");
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));
@@ -1118,11 +1129,14 @@ void test_ru_project_search()
     scriba_id_create(&company_id);
 
     scriba_addProjectWithID(proj1_id, "Кораблестроение", "",
-                            company_id, PROJECT_STATE_INITIAL);
+                            company_id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_RUB, 1000);
     scriba_addProjectWithID(proj2_id, "Глазеем на корабли", "",
-                            company_id, PROJECT_STATE_INITIAL);
+                            company_id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_RUB, 1000);
     scriba_addProjectWithID(proj3_id, "Рыбалка", "",
-                            company_id, PROJECT_STATE_INITIAL);
+                            company_id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_RUB, 1000);
 
     projects = scriba_getProjectsByTitle("корабл");
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));

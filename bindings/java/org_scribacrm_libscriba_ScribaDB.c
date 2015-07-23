@@ -1348,7 +1348,7 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject(JNIEn
     }
 
     project_ctor_id = (*env)->GetMethodID(env, project_class, "<init>",
-                                          "(JJLjava/lang/String;Ljava/lang/String;JJB)V");
+                                          "(JJLjava/lang/String;Ljava/lang/String;JJBBJ)V");
     if (project_ctor_id == NULL)
     {
         goto exit;
@@ -1362,7 +1362,9 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject(JNIEn
                                      java_title, java_descr,
                                      (jlong)(project->company_id._high),
                                      (jlong)(project->company_id._low),
-                                     (jbyte)(project->state));
+                                     (jbyte)(project->state),
+                                     (jbyte)(project->currency),
+                                     (jlong)(project->cost));
 
 exit:
     if (project != NULL)
@@ -1455,7 +1457,9 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject(JNIEnv *
                                                                         jstring java_title,
                                                                         jstring java_descr,
                                                                         jobject company_id,
-                                                                        jbyte state)
+                                                                        jbyte state,
+                                                                        jbyte currency,
+                                                                        jlong cost)
 {
     char *native_title = java_string_to_utf8(env, this, java_title);
     char *native_descr = java_string_to_utf8(env, this, java_descr);
@@ -1463,7 +1467,8 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject(JNIEnv *
 
     UUID_to_scriba_id(env, company_id, &native_company_id);
     scriba_addProject(native_title, native_descr, native_company_id,
-                      (enum ScribaProjectState)state);
+                      (enum ScribaProjectState)state, (enum ScribaCurrency)currency,
+                      (long long)cost);
 
     if (native_title != NULL)
     {
@@ -1542,6 +1547,20 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateProject(JNIEn
         goto exit;
     }
     project->state = (enum ScribaProjectState)((*env)->GetByteField(env, java_project, fieldID));
+
+    fieldID = (*env)->GetFieldID(env, project_class, "currency", "B");
+    if (fieldID == NULL)
+    {
+        goto exit;
+    }
+    project->currency = (enum ScribaCurrency)((*env)->GetByteField(env, java_project, fieldID));
+
+    fieldID = (*env)->GetFieldID(env, project_class, "cost", "J");
+    if (fieldID == NULL)
+    {
+        goto exit;
+    }
+    project->cost = (long long)((*env)->GetByteField(env, java_project, fieldID));
 
     scriba_updateProject(project);
 

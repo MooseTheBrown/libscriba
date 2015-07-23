@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -35,26 +35,40 @@ public final class Project {
         public static final byte PAYMENT = 7;
     }
 
+    public static class Currency {
+        public static final byte RUB = 0;
+        public static final byte USD = 1;
+        public static final byte EUR = 2;
+    }
+
     public final UUID id;
     public final String title;
     public final String descr;
     public final UUID company_id;
     public final byte state;
+    public final byte currency;
+    public final long cost;
 
-    public Project(UUID id, String title, String descr, UUID company_id, byte state) {
+    public Project(UUID id, String title, String descr, UUID company_id, byte state,
+                   byte currency, long cost) {
         this.id = id;
         this.title = title;
         this.descr = descr;
         this.company_id = company_id;
         this.state = state;
+        this.currency = currency;
+        this.cost = cost;
     }
 
     public Project(long id_high, long id_low, String title, String descr,
-                   long company_id_high, long company_id_low, byte state) {
+                   long company_id_high, long company_id_low, byte state,
+                   byte currency, long cost) {
         this.id = new UUID(id_high, id_low);
         this.title = title;
         this.descr = descr;
         this.company_id = new UUID(company_id_high, company_id_low);
         this.state = state;
+        this.currency = currency;
+        this.cost = cost;
     }
 }

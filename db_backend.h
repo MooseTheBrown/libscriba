@@ -63,7 +63,7 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getProjectsByCompany)(scriba_id_t);
     scriba_list_t* (*getProjectsByState)(enum ScribaProjectState);
     void (*addProject)(scriba_id_t, const char *, const char *, scriba_id_t,
-                       enum ScribaProjectState);
+                       enum ScribaProjectState, enum ScribaCurrency, long long);
     void (*updateProject)(const struct ScribaProject *);
     void (*removeProject)(scriba_id_t);
 

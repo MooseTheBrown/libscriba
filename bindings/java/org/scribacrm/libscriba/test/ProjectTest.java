@@ -40,10 +40,13 @@ public class ProjectTest {
         descr.name = "scriba_sqlite";
         descr.type = ScribaDB.DBType.BUILTIN;
 
-        ScribaDB.DBParam[] params = new ScribaDB.DBParam[1];
+        ScribaDB.DBParam[] params = new ScribaDB.DBParam[2];
         params[0] = new ScribaDB.DBParam();
         params[0].key = "db_loc";
         params[0].value = testDBLocation;
+        params[1] = new ScribaDB.DBParam();
+        params[1].key = "db_sync";
+        params[1].value = "off";
 
         ScribaDB.init(descr, params);
 
@@ -60,11 +63,14 @@ public class ProjectTest {
 
         // add projects
         ScribaDB.addProject("Project 1", "Doing nothing",
-                            _company1_id, Project.State.EXECUTION);
+                            _company1_id, Project.State.EXECUTION,
+                            Project.Currency.RUB, 1000);
         ScribaDB.addProject("Project 2", "Selling useless stuff",
-                            _company1_id, Project.State.OFFER);
+                            _company1_id, Project.State.OFFER,
+                            Project.Currency.USD, 500);
         ScribaDB.addProject("Project 3", "Selling other useless stuff",
-                            _company2_id, Project.State.REJECTED);
+                            _company2_id, Project.State.REJECTED,
+                            Project.Currency.EUR, 400);
     }
 
     @After
@@ -107,6 +113,8 @@ public class ProjectTest {
         assertTrue("Project descr match", project.descr.equals("Selling other useless stuff"));
         assertTrue("Company id match", _company2_id.equals(project.company_id));
         assertEquals("Project state match", Project.State.REJECTED, project.state);
+        assertEquals("Project currency match", Project.Currency.EUR, project.currency);
+        assertEquals("Project cost match", 400, project.cost);
     }
 
     @Test
@@ -139,7 +147,8 @@ public class ProjectTest {
         Project project = ScribaDB.getProject(projects[0].id);
         Project updated_project = new Project(project.id, project.title,
                                               project.descr, project.company_id,
-                                              Project.State.PAYMENT);
+                                              Project.State.PAYMENT,
+                                              Project.Currency.EUR, 3000);
         ScribaDB.updateProject(updated_project);
         Project check_project = ScribaDB.getProject(projects[0].id);
         assertEquals("project state should be updated", Project.State.PAYMENT,

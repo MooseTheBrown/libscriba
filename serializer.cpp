@@ -448,6 +448,21 @@ static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuild
         break;
     }
 
+    switch (project->currency)
+    {
+    case SCRIBA_CURRENCY_RUB:
+        prjb.add_currency(Currency_RUB);
+        break;
+    case SCRIBA_CURRENCY_USD:
+        prjb.add_currency(Currency_USD);
+        break;
+    case SCRIBA_CURRENCY_EUR:
+        prjb.add_currency(Currency_EUR);
+        break;
+    }
+
+    prjb.add_cost(project->cost);
+
     scriba_freeProjectData(project);
     return prjb.Finish();
 }
@@ -714,6 +729,7 @@ static bool deserialize_project(const Project *project, enum ScribaMergeStrategy
     enum ScribaProjectState project_state = PROJECT_STATE_INITIAL;
     char *project_title = NULL;
     char *project_descr = NULL;
+    enum ScribaCurrency project_currency = SCRIBA_CURRENCY_RUB;
 
     project_id._high = project->id()->high();
     project_id._low = project->id()->low();
@@ -745,6 +761,18 @@ static bool deserialize_project(const Project *project, enum ScribaMergeStrategy
     default:
         break;
     }
+    switch (project->currency())
+    {
+    case Currency_RUB:
+        project_currency = SCRIBA_CURRENCY_RUB;
+        break;
+    case Currency_USD:
+        project_currency = SCRIBA_CURRENCY_USD;
+        break;
+    case Currency_EUR:
+        project_currency = SCRIBA_CURRENCY_EUR;
+        break;
+    }
 
     if (project->title() != NULL)
     {
@@ -768,6 +796,8 @@ static bool deserialize_project(const Project *project, enum ScribaMergeStrategy
             updated_project.descr = project_descr;
             scriba_id_copy(&(updated_project.company_id), &company_id);
             updated_project.state = project_state;
+            updated_project.currency = project_currency;
+            updated_project.cost = project->cost();
 
             scriba_updateProject(&updated_project);
         }
@@ -784,7 +814,9 @@ static bool deserialize_project(const Project *project, enum ScribaMergeStrategy
                                 project_title,
                                 project_descr,
                                 company_id,
-                                project_state);
+                                project_state,
+                                project_currency,
+                                project->cost());
     }
 
     return false;

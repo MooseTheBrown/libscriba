@@ -46,10 +46,13 @@ public class EventTest {
         descr.name = "scriba_sqlite";
         descr.type = ScribaDB.DBType.BUILTIN;
 
-        ScribaDB.DBParam[] params = new ScribaDB.DBParam[1];
+        ScribaDB.DBParam[] params = new ScribaDB.DBParam[2];
         params[0] = new ScribaDB.DBParam();
         params[0].key = "db_loc";
         params[0].value = testDBLocation;
+        params[1] = new ScribaDB.DBParam();
+        params[1].key = "db_sync";
+        params[1].value = "off";
 
         ScribaDB.init(descr, params);
 
@@ -66,9 +69,11 @@ public class EventTest {
 
         // add projects
         ScribaDB.addProject("Project 1", "Doing nothing",
-                            _company1_id, Project.State.EXECUTION);
+                            _company1_id, Project.State.EXECUTION,
+                            Project.Currency.RUB, 1000);
         ScribaDB.addProject("Project 2", "Salt",
-                            _company2_id, Project.State.PAYMENT);
+                            _company2_id, Project.State.PAYMENT,
+                            Project.Currency.RUB, 1000);
         DataDescriptor[] projects = ScribaDB.getProjectsByCompany(_company1_id);
         _project1_id = projects[0].id;
         projects = ScribaDB.getProjectsByCompany(_company2_id);

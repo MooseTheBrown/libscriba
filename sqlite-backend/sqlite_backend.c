@@ -76,10 +76,12 @@
     "title TEXT COLLATE NOCASE,"\
     "descr TEXT,"\
     "company_id BLOB,"\
-    "state INTEGER"\
+    "state INTEGER,"\
+    "currency INTEGER,"\
+    "cost INTEGER"\
     ")"
 
-#define PROJECT_TABLE_COLUMNS 5
+#define PROJECT_TABLE_COLUMNS 7
 
 #define ENABLE_SYNC "PRAGMA synchronous=2"
 #define DISABLE_SYNC "PRAGMA synchronous=0"
@@ -195,7 +197,8 @@ static void removePOC(scriba_id_t id);
 
 // create project data structure based on given parameters
 static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, const char *descr,
-                                             scriba_id_t company_id, enum ScribaProjectState state);
+                                             scriba_id_t company_id, enum ScribaProjectState state,
+                                             enum ScribaCurrency currency, long long cost);
 
 // common project search routine
 static scriba_list_t *projectSearch(sqlite3_stmt *stmt);
@@ -207,7 +210,8 @@ static scriba_list_t *getProjectsByTitle(const char *title);
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
 static void addProject(scriba_id_t id, const char *title, const char *descr,
-                       scriba_id_t company_id, enum ScribaProjectState state);
+                       scriba_id_t company_id, enum ScribaProjectState state,
+                       enum ScribaCurrency currency, long long cost);
 static void updateProject(const struct ScribaProject *project);
 static void removeProject(scriba_id_t id);
 
@@ -1110,7 +1114,7 @@ static struct ScribaEvent *getEvent(scriba_id_t id)
     enum ScribaEventType type = (enum ScribaEventType)sqlite3_column_int(stmt, 5);
     const char *outcome = sqlite3_column_text(stmt, 6);
     scriba_time_t timestamp = (scriba_time_t)sqlite3_column_int64(stmt, 7);
-    enum ScribaEventState state = (enum ScribaEventState)sqlite3_column_int64(stmt, 8);
+    enum ScribaEventState state = (enum ScribaEventState)sqlite3_column_int(stmt, 8);
 
     struct ScribaEvent *event = fillEventData(id, descr, company_id, poc_id,
                                               project_id, type, outcome, timestamp,
@@ -2313,7 +2317,8 @@ exit:
 
 // create project data structure based on given parameters
 static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, const char *descr,
-                                             scriba_id_t company_id, enum ScribaProjectState state)
+                                             scriba_id_t company_id, enum ScribaProjectState state,
+                                             enum ScribaCurrency currency, long long cost)
 {
     int len = 0;
     struct ScribaProject *project = (struct ScribaProject*)malloc(sizeof (struct ScribaProject));
@@ -2338,6 +2343,8 @@ static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, 
     }
     scriba_id_copy(&(project->company_id), &company_id);
     project->state = state;
+    project->currency = currency;
+    project->cost = cost;
 
     return project;
 }
@@ -2449,8 +2456,11 @@ static struct ScribaProject *getProject(scriba_id_t id)
     scriba_id_t company_id;
     scriba_id_from_blob(sqlite3_column_blob(stmt, 3), &company_id);
     enum ScribaProjectState state = (enum ScribaProjectState)sqlite3_column_int(stmt, 4);
+    enum ScribaCurrency currency = (enum ScribaCurrency)sqlite3_column_int(stmt, 5);
+    unsigned long cost = (unsigned long)sqlite3_column_int64(stmt, 6);
 
-    struct ScribaProject *project = fillProjectData(project_id, title, descr, company_id, state);
+    struct ScribaProject *project = fillProjectData(project_id, title, descr, company_id, state,
+                                                    currency, cost);
     sqlite3_finalize(stmt);
     if (id_blob != NULL)
     {
@@ -2639,10 +2649,11 @@ error:
 }
 
 static void addProject(scriba_id_t id, const char *title, const char *descr,
-                       scriba_id_t company_id, enum ScribaProjectState state)
+                       scriba_id_t company_id, enum ScribaProjectState state,
+                       enum ScribaCurrency currency, long long cost)
 {
-    char query[] = "INSERT INTO Projects(id,title,descr,company_id,state) "
-                   "VALUES(?,?,?,?,?)";
+    char query[] = "INSERT INTO Projects(id,title,descr,company_id,state,currency,cost) "
+                   "VALUES(?,?,?,?,?,?,?)";
     sqlite3_stmt *stmt = NULL;
     void *id_blob = NULL;
     void *company_id_blob = NULL;
@@ -2688,6 +2699,14 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
     {
         goto exit;
     }
+    if (sqlite3_bind_int(stmt, 6, (int)currency) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 7, (sqlite_int64)cost) != SQLITE_OK)
+    {
+        goto exit;
+    }
 
     // execute query
     while (1)
@@ -2721,7 +2740,8 @@ exit:
 
 static void updateProject(const struct ScribaProject *project)
 {
-    char query[] = "UPDATE Projects SET title=?,descr=?,company_id=?,state=? WHERE id=?";
+    char query[] = "UPDATE Projects SET title=?,descr=?,company_id=?,state=?,currency=?,cost=? "
+                   "WHERE id=?";
     sqlite3_stmt *stmt = NULL;
     void *id_blob = NULL;
     void *company_id_blob = NULL;
@@ -2757,9 +2777,17 @@ static void updateProject(const struct ScribaProject *project)
     {
         goto exit;
     }
+    if (sqlite3_bind_int(stmt, 5, (int)(project->currency)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 6, (sqlite_int64)(project->cost)) != SQLITE_OK)
+    {
+        goto exit;
+    }
     id_blob = scriba_id_to_blob(&(project->id));
     if (sqlite3_bind_blob(stmt,
-                          5,
+                          7,
                           id_blob,
                           SCRIBA_ID_BLOB_SIZE,
                           SQLITE_TRANSIENT) != SQLITE_OK)

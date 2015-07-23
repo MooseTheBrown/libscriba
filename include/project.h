@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -41,6 +41,14 @@ enum ScribaProjectState
     PROJECT_STATE_PAYMENT = 7
 };
 
+// supported currency types
+enum ScribaCurrency
+{
+    SCRIBA_CURRENCY_RUB = 0,
+    SCRIBA_CURRENCY_USD = 1,
+    SCRIBA_CURRENCY_EUR = 2
+};
+
 // project data structure
 struct ScribaProject
 {
@@ -49,6 +57,8 @@ struct ScribaProject
     char *descr;                        // project description
     scriba_id_t company_id;             // id of company associated with the project
     enum ScribaProjectState state;      // state of the project
+    enum ScribaCurrency currency;       // currency of the project
+    long long cost;                     // cost of the project
 };
 
 // get project by id
@@ -63,10 +73,12 @@ scriba_list_t *scriba_getProjectsByCompany(scriba_id_t id);
 scriba_list_t *scriba_getProjectsByState(enum ScribaProjectState state);
 // add project to the database
 void scriba_addProject(const char *title, const char *descr, scriba_id_t company_id,
-                       enum ScribaProjectState state);
+                       enum ScribaProjectState state, enum ScribaCurrency currency,
+                       long long cost);
 // add project with given ID to the database
 void scriba_addProjectWithID(scriba_id_t id, const char *title, const char *descr,
-                             scriba_id_t company_id, enum ScribaProjectState state);
+                             scriba_id_t company_id, enum ScribaProjectState state,
+                             enum ScribaCurrency currency, long long cost);
 // update project info
 void scriba_updateProject(const struct ScribaProject *project);
 // remove project from the database

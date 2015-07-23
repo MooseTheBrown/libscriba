@@ -202,10 +202,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjects
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    addProject
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/util/UUID;B)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/util/UUID;BBJ)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject
-  (JNIEnv *, jclass, jstring, jstring, jobject, jbyte);
+  (JNIEnv *, jclass, jstring, jstring, jobject, jbyte, jbyte, jlong);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2014 Mikhail Sapozhnikov
+// Copyright (C) 2015 Mikhail Sapozhnikov
 //
 // This file is part of libscriba.
 //
@@ -45,6 +45,13 @@ enum ProjectState:byte
     CONTRACT_SIGNED = 5,
     EXECUTION = 6,
     PAYMENT = 7
+}
+
+enum Currency:byte
+{
+    RUB = 0,
+    USD = 1,
+    EUR = 2
 }
 
 struct ID
@@ -97,6 +104,8 @@ table Project
     descr:string;
     company_id:ID;
     state:ProjectState;
+    currency:Currency;
+    cost:ulong;
 }
 
 table Entries

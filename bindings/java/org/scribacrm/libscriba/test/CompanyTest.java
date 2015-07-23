@@ -37,10 +37,13 @@ public class CompanyTest {
         descr.name = "scriba_sqlite";
         descr.type = ScribaDB.DBType.BUILTIN;
 
-        ScribaDB.DBParam[] params = new ScribaDB.DBParam[1];
+        ScribaDB.DBParam[] params = new ScribaDB.DBParam[2];
         params[0] = new ScribaDB.DBParam();
         params[0].key = "db_loc";
         params[0].value = testDBLocation;
+        params[1] = new ScribaDB.DBParam();
+        params[1].key = "db_sync";
+        params[1].value = "off";
 
         ScribaDB.init(descr, params);
 
@@ -148,7 +151,7 @@ public class CompanyTest {
         UUID poc2_id = poc2[0].id;
 
         ScribaDB.addProject("SW development", "Just moosing around really", company_id,
-                            Project.State.EXECUTION);
+                            Project.State.EXECUTION, Project.Currency.RUB, 1000);
 
         DataDescriptor[] project = ScribaDB.getProjectsByCompany(company_id);
         UUID project_id = project[0].id;

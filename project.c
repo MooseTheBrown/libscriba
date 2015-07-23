@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -57,19 +57,21 @@ scriba_list_t *scriba_getProjectsByState(enum ScribaProjectState state)
 
 // add project to the database
 void scriba_addProject(const char *title, const char *descr, scriba_id_t company_id,
-                       enum ScribaProjectState state)
+                       enum ScribaProjectState state, enum ScribaCurrency currency,
+                       long long cost)
 {
     scriba_id_t id;
 
     scriba_id_create(&id);
-    fTbl->addProject(id, title, descr, company_id, state);
+    fTbl->addProject(id, title, descr, company_id, state, currency, cost);
 }
 
 // add project with given ID to the database
 void scriba_addProjectWithID(scriba_id_t id, const char *title, const char *descr,
-                             scriba_id_t company_id, enum ScribaProjectState state)
+                             scriba_id_t company_id, enum ScribaProjectState state,
+                             enum ScribaCurrency currency, long long cost)
 {
-    fTbl->addProject(id, title, descr, company_id, state);
+    fTbl->addProject(id, title, descr, company_id, state, currency, cost);
 }
 
 // update project info
@@ -112,6 +114,8 @@ struct ScribaProject *scriba_copyProject(const struct ScribaProject *project)
     }
     scriba_id_copy(&(ret->company_id), &(project->company_id));
     ret->state = project->state;
+    ret->currency = project->currency;
+    ret->cost = project->cost;
 
     return ret;
 }

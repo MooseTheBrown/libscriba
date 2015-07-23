@@ -78,7 +78,8 @@ static scriba_list_t *getProjectsByTitle(const char *title);
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
 static void addProject(scriba_id_t id, const char *title, const char *descr,
-                       scriba_id_t company_id, enum ScribaProjectState state);
+                       scriba_id_t company_id, enum ScribaProjectState state,
+                       enum ScribaCurrency currency, long long cost);
 static void updateProject(const struct ScribaProject *project);
 static void removeProject(scriba_id_t id);
 static void free_project_data(struct ScribaProject *project);
@@ -1124,7 +1125,8 @@ static scriba_list_t *getProjectsByState(enum ScribaProjectState state)
 }
 
 static void addProject(scriba_id_t id, const char *title, const char *descr,
-                       scriba_id_t company_id, enum ScribaProjectState state)
+                       scriba_id_t company_id, enum ScribaProjectState state,
+                       enum ScribaCurrency currency, long long cost)
 {
     struct ScribaProject *new_project = (struct ScribaProject *)malloc(sizeof (struct ScribaProject));
     int len = 0;
@@ -1146,6 +1148,8 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
     }
     scriba_id_copy(&(new_project->company_id), &company_id);
     new_project->state = state;
+    new_project->currency = currency;
+    new_project->cost = cost;
 
     struct MockProjectList *project = mockData.projects;
     struct MockProjectList *last = NULL;

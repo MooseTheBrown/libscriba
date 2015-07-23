@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Mikhail Sapozhnikov
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -42,10 +42,13 @@ public class SerializerTest {
         descr.name = "scriba_sqlite";
         descr.type = ScribaDB.DBType.BUILTIN;
 
-        ScribaDB.DBParam[] params = new ScribaDB.DBParam[1];
+        ScribaDB.DBParam[] params = new ScribaDB.DBParam[2];
         params[0] = new ScribaDB.DBParam();
         params[0].key = "db_loc";
         params[0].value = testDBLocation;
+        params[1] = new ScribaDB.DBParam();
+        params[1].key = "db_sync";
+        params[1].value = "off";
 
         ScribaDB.init(descr, params);
 
@@ -61,7 +64,8 @@ public class SerializerTest {
         _poc_id = people[0].id;
 
         ScribaDB.addProject("Project 1", "Doing nothing",
-                            _company_id, Project.State.EXECUTION);
+                            _company_id, Project.State.EXECUTION,
+                            Project.Currency.RUB, 1000);
         DataDescriptor[] projects = ScribaDB.getProjectsByCompany(_company_id);
         _project_id = projects[0].id;
 

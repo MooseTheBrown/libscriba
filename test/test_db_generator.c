@@ -251,6 +251,8 @@ int main(int argc, char **argv)
                 char title[50];
                 char descr[50];
                 enum ScribaProjectState state;
+                enum ScribaCurrency currency;
+                unsigned long cost;
 
                 snprintf(title, 50, "Project %d-%d-%d", a + 1, b + 1, c + 1);
                 snprintf(descr, 50, "description of project %d-%d-%d", a + 1, b + 1, c + 1);
@@ -282,7 +284,24 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                scriba_addProjectWithID(proj_id, title, descr, company_id, state);
+                switch ((c + 1) % 3)
+                {
+                case 0:
+                    currency = SCRIBA_CURRENCY_RUB;
+                    cost = 1000 * c;
+                    break;
+                case 1:
+                    currency = SCRIBA_CURRENCY_USD;
+                    cost = 50 * c;
+                    break;
+                case 2:
+                    currency = SCRIBA_CURRENCY_EUR;
+                    cost = 40 * c;
+                    break;
+                }
+
+                scriba_addProjectWithID(proj_id, title, descr, company_id, state,
+                                        currency, cost);
                 entries++;
 
                 for (int d = 0; d < params.events_per_proj; d++)
