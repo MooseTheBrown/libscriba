@@ -1560,7 +1560,7 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateProject(JNIEn
     {
         goto exit;
     }
-    project->cost = (long long)((*env)->GetByteField(env, java_project, fieldID));
+    project->cost = (long long)((*env)->GetLongField(env, java_project, fieldID));
 
     scriba_updateProject(project);
 
