@@ -123,7 +123,7 @@ public final class ScribaDB {
     public static native byte deserialize(byte[] buf, byte mergeStrategy);
 
     // retrieve array of descriptors pointed to by nextId
-    public static native DataDescriptor[] next(long nextId);
+    public static synchronized native DataDescriptor[] next(long nextId);
 
     // convenience wrapper around multiple next() calls:
     // load all parts of large data descriptor array using next() and
@@ -138,6 +138,9 @@ public final class ScribaDB {
         }
         while (cur_part[cur_part.length - 1].nextId != DataDescriptor.NONEXT) {
             cur_part = ScribaDB.next(cur_part[cur_part.length - 1].nextId);
+            if (cur_part == null) {
+                break;
+            }
             for (DataDescriptor d : cur_part) {
                 if (d.nextId == DataDescriptor.NONEXT) {
                     concat.add(d);
