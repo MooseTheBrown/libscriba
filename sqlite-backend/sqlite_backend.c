@@ -78,10 +78,12 @@
     "company_id BLOB,"\
     "state INTEGER,"\
     "currency INTEGER,"\
-    "cost INTEGER"\
+    "cost INTEGER,"\
+    "start_time INTEGER,"\
+    "mod_time INTEGER"\
     ")"
 
-#define PROJECT_TABLE_COLUMNS 7
+#define PROJECT_TABLE_COLUMNS 9
 
 #define ENABLE_SYNC "PRAGMA synchronous=2"
 #define DISABLE_SYNC "PRAGMA synchronous=0"
@@ -198,7 +200,8 @@ static void removePOC(scriba_id_t id);
 // create project data structure based on given parameters
 static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, const char *descr,
                                              scriba_id_t company_id, enum ScribaProjectState state,
-                                             enum ScribaCurrency currency, long long cost);
+                                             enum ScribaCurrency currency, long long cost,
+                                             scriba_time_t start_time, scriba_time_t mod_time);
 
 // common project search routine
 static scriba_list_t *projectSearch(sqlite3_stmt *stmt);
@@ -209,10 +212,17 @@ static scriba_list_t *getAllProjects();
 static scriba_list_t *getProjectsByTitle(const char *title);
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
+static scriba_list_t *getProjectsByTime(scriba_time_t start_time, enum ScribaTimeComp start_comp,
+                                        scriba_time_t mod_time, enum ScribaTimeComp mod_comp);
+static scriba_list_t *getProjectsByStateTime(enum ScribaProjectState state,
+                                             scriba_time_t start_time,
+                                             enum ScribaTimeComp start_comp,
+                                             scriba_time_t mod_time,
+                                             enum ScribaTimeComp mod_comp);
 static void addProject(scriba_id_t id, const char *title, const char *descr,
                        scriba_id_t company_id, enum ScribaProjectState state,
-                       enum ScribaCurrency currency, long long cost);
-static void updateProject(const struct ScribaProject *project);
+                       enum ScribaCurrency currency, long long cost, scriba_time_t start_time);
+static void updateProject(struct ScribaProject *project);
 static void removeProject(scriba_id_t id);
 
 
@@ -287,6 +297,8 @@ int scriba_sqlite_init(struct ScribaDBParamList *pl, struct ScribaDBFuncTbl *fTb
     fTbl->getProjectsByTitle = getProjectsByTitle;
     fTbl->getProjectsByCompany = getProjectsByCompany;
     fTbl->getProjectsByState = getProjectsByState;
+    fTbl->getProjectsByTime = getProjectsByTime;
+    fTbl->getProjectsByStateTime = getProjectsByStateTime;
     fTbl->addProject = addProject;
     fTbl->updateProject = updateProject;
     fTbl->removeProject = removeProject;
@@ -2318,7 +2330,8 @@ exit:
 // create project data structure based on given parameters
 static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, const char *descr,
                                              scriba_id_t company_id, enum ScribaProjectState state,
-                                             enum ScribaCurrency currency, long long cost)
+                                             enum ScribaCurrency currency, long long cost,
+                                             scriba_time_t start_time, scriba_time_t mod_time)
 {
     int len = 0;
     struct ScribaProject *project = (struct ScribaProject*)malloc(sizeof (struct ScribaProject));
@@ -2345,6 +2358,8 @@ static struct ScribaProject *fillProjectData(scriba_id_t id, const char *title, 
     project->state = state;
     project->currency = currency;
     project->cost = cost;
+    project->start_time = start_time;
+    project->mod_time = mod_time;
 
     return project;
 }
@@ -2458,9 +2473,11 @@ static struct ScribaProject *getProject(scriba_id_t id)
     enum ScribaProjectState state = (enum ScribaProjectState)sqlite3_column_int(stmt, 4);
     enum ScribaCurrency currency = (enum ScribaCurrency)sqlite3_column_int(stmt, 5);
     unsigned long cost = (unsigned long)sqlite3_column_int64(stmt, 6);
+    scriba_time_t start_time = (scriba_time_t)sqlite3_column_int64(stmt, 7);
+    scriba_time_t mod_time = (scriba_time_t)sqlite3_column_int64(stmt, 8);
 
     struct ScribaProject *project = fillProjectData(project_id, title, descr, company_id, state,
-                                                    currency, cost);
+                                                    currency, cost, start_time, mod_time);
     sqlite3_finalize(stmt);
     if (id_blob != NULL)
     {
@@ -2648,12 +2665,256 @@ error:
     return (scriba_list_init());
 }
 
+static scriba_list_t *getProjectsByTime(scriba_time_t start_time, enum ScribaTimeComp start_comp,
+                                        scriba_time_t mod_time, enum ScribaTimeComp mod_comp)
+{
+    char *beginning = "SELECT id,title FROM Projects WHERE ";
+    char *start_time_part = NULL;
+    char *mod_time_part = NULL;
+    char *and_part = NULL;
+    int len = 0;
+    char *query = NULL;
+    sqlite3_stmt *stmt = NULL;
+    scriba_list_t *ret = NULL;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    if ((start_comp == SCRIBA_TIME_IGNORE) && (mod_comp == SCRIBA_TIME_IGNORE))
+    {
+        goto exit;
+    }
+
+    if (start_comp == SCRIBA_TIME_BEFORE)
+    {
+        start_time_part = "start_time<?";
+    }
+    else if (start_comp == SCRIBA_TIME_AFTER)
+    {
+        start_time_part = "start_time>?";
+    }
+
+    if (mod_comp == SCRIBA_TIME_BEFORE)
+    {
+        mod_time_part = "mod_time<?";
+    }
+    if (mod_comp == SCRIBA_TIME_AFTER)
+    {
+        mod_time_part = "mod_time>?";
+    }
+
+    if ((start_time_part != NULL) && (mod_time_part != NULL))
+    {
+        and_part = " AND ";
+    }
+
+    len = strlen(beginning);
+    if (start_time_part != NULL)
+    {
+        len += strlen(start_time_part);
+    }
+    if (mod_time_part != NULL)
+    {
+        len += strlen(mod_time_part);
+    }
+    if (and_part != NULL)
+    {
+        len += strlen(and_part);
+    }
+    len++;
+    query = (char *)malloc(len);
+    strcpy(query, beginning);
+    if (start_time_part != NULL)
+    {
+        strcat(query, start_time_part);
+    }
+    if (and_part != NULL)
+    {
+        strcat(query, and_part);
+    }
+    if (mod_time_part != NULL)
+    {
+        strcat(query, mod_time_part);
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (start_time_part != NULL)
+    {
+        if (sqlite3_bind_int64(stmt, 1, (sqlite_int64)start_time) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+    if (mod_time_part != NULL)
+    {
+        int num = (start_time_part == NULL) ? 1 : 2;
+        if (sqlite3_bind_int64(stmt, num, (sqlite_int64)mod_time) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+
+    ret = projectSearch(stmt);
+    // projectSearch finalized stmt, so don't finalize it again
+    stmt = NULL;
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    if (query != NULL)
+    {
+        free(query);
+    }
+    if (ret == NULL)
+    {
+        ret = scriba_list_init();
+    }
+    return ret;
+}
+
+static scriba_list_t *getProjectsByStateTime(enum ScribaProjectState state,
+                                             scriba_time_t start_time,
+                                             enum ScribaTimeComp start_comp,
+                                             scriba_time_t mod_time,
+                                             enum ScribaTimeComp mod_comp)
+{
+    char *beginning = "SELECT id,title FROM Projects WHERE state=?";
+    char *start_time_part = NULL;
+    char *mod_time_part = NULL;
+    char *and_part1 = NULL;
+    char *and_part2 = NULL;
+    int len = 0;
+    char *query = NULL;
+    sqlite3_stmt *stmt = NULL;
+    scriba_list_t *ret = NULL;
+
+    if (data == NULL)
+    {
+        goto exit;
+    }
+
+    if ((start_comp != SCRIBA_TIME_IGNORE) || (mod_comp != SCRIBA_TIME_IGNORE))
+    {
+        and_part1 = " AND ";
+    }
+
+    if (start_comp == SCRIBA_TIME_BEFORE)
+    {
+        start_time_part = "start_time<?";
+    }
+    else if (start_comp == SCRIBA_TIME_AFTER)
+    {
+        start_time_part = "start_time>?";
+    }
+
+    if (mod_comp == SCRIBA_TIME_BEFORE)
+    {
+        mod_time_part = "mod_time<?";
+    }
+    if (mod_comp == SCRIBA_TIME_AFTER)
+    {
+        mod_time_part = "mod_time>?";
+    }
+
+    if ((start_time_part != NULL) && (mod_time_part != NULL))
+    {
+        and_part2 = " AND ";
+    }
+
+    len = strlen(beginning);
+    if (and_part1 != NULL)
+    {
+        len += strlen(and_part1);
+    }
+    if (start_time_part != NULL)
+    {
+        len += strlen(start_time_part);
+    }
+    if (mod_time_part != NULL)
+    {
+        len += strlen(mod_time_part);
+    }
+    if (and_part2 != NULL)
+    {
+        len += strlen(and_part2);
+    }
+    len++;
+    query = (char *)malloc(len);
+    strcpy(query, beginning);
+    if (and_part1 != NULL)
+    {
+        strcat(query, and_part1);
+    }
+    if (start_time_part != NULL)
+    {
+        strcat(query, start_time_part);
+    }
+    if (and_part2 != NULL)
+    {
+        strcat(query, and_part2);
+    }
+    if (mod_time_part != NULL)
+    {
+        strcat(query, mod_time_part);
+    }
+
+    if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int(stmt, 1, (int)state) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (start_time_part != NULL)
+    {
+        if (sqlite3_bind_int64(stmt, 2, (sqlite_int64)start_time) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+    if (mod_time_part != NULL)
+    {
+        int num = (start_time_part == NULL) ? 2 : 3;
+        if (sqlite3_bind_int64(stmt, num, (sqlite_int64)mod_time) != SQLITE_OK)
+        {
+            goto exit;
+        }
+    }
+
+    ret = projectSearch(stmt);
+    // projectSearch finalized stmt, so don't finalize it again
+    stmt = NULL;
+
+exit:
+    if (stmt != NULL)
+    {
+        sqlite3_finalize(stmt);
+    }
+    if (query != NULL)
+    {
+        free(query);
+    }
+    if (ret == NULL)
+    {
+        ret = scriba_list_init();
+    }
+    return ret;
+}
+
 static void addProject(scriba_id_t id, const char *title, const char *descr,
                        scriba_id_t company_id, enum ScribaProjectState state,
-                       enum ScribaCurrency currency, long long cost)
+                       enum ScribaCurrency currency, long long cost, scriba_time_t start_time)
 {
-    char query[] = "INSERT INTO Projects(id,title,descr,company_id,state,currency,cost) "
-                   "VALUES(?,?,?,?,?,?,?)";
+    char query[] = "INSERT INTO Projects(id,title,descr,company_id,state,currency,"
+                   "cost,start_time,mod_time) VALUES(?,?,?,?,?,?,?,?,?)";
     sqlite3_stmt *stmt = NULL;
     void *id_blob = NULL;
     void *company_id_blob = NULL;
@@ -2707,6 +2968,15 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
     {
         goto exit;
     }
+    if (sqlite3_bind_int64(stmt, 8, (sqlite_int64)start_time) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    // mod_time should be set to start_time at project creation
+    if (sqlite3_bind_int64(stmt, 9, (sqlite_int64)start_time) != SQLITE_OK)
+    {
+        goto exit;
+    }
 
     // execute query
     while (1)
@@ -2738,10 +3008,10 @@ exit:
     }
 }
 
-static void updateProject(const struct ScribaProject *project)
+static void updateProject(struct ScribaProject *project)
 {
-    char query[] = "UPDATE Projects SET title=?,descr=?,company_id=?,state=?,currency=?,cost=? "
-                   "WHERE id=?";
+    char query[] = "UPDATE Projects SET title=?,descr=?,company_id=?,state=?,currency=?,cost=?,"
+                   "start_time=?,mod_time=? WHERE id=?";
     sqlite3_stmt *stmt = NULL;
     void *id_blob = NULL;
     void *company_id_blob = NULL;
@@ -2785,9 +3055,17 @@ static void updateProject(const struct ScribaProject *project)
     {
         goto exit;
     }
+    if (sqlite3_bind_int64(stmt, 7, (sqlite_int64)(project->start_time)) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 8, (sqlite_int64)(project->mod_time)) != SQLITE_OK)
+    {
+        goto exit;
+    }
     id_blob = scriba_id_to_blob(&(project->id));
     if (sqlite3_bind_blob(stmt,
-                          7,
+                          9,
                           id_blob,
                           SCRIBA_ID_BLOB_SIZE,
                           SQLITE_TRANSIENT) != SQLITE_OK)

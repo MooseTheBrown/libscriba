@@ -253,6 +253,7 @@ int main(int argc, char **argv)
                 enum ScribaProjectState state;
                 enum ScribaCurrency currency;
                 unsigned long cost;
+                scriba_time_t start_time;
 
                 snprintf(title, 50, "Project %d-%d-%d", a + 1, b + 1, c + 1);
                 snprintf(descr, 50, "description of project %d-%d-%d", a + 1, b + 1, c + 1);
@@ -300,8 +301,10 @@ int main(int argc, char **argv)
                     break;
                 }
 
+                start_time = (scriba_time_t)time(NULL) - a - b - c;
+
                 scriba_addProjectWithID(proj_id, title, descr, company_id, state,
-                                        currency, cost);
+                                        currency, cost, start_time);
                 entries++;
 
                 for (int d = 0; d < params.events_per_proj; d++)

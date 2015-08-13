@@ -77,10 +77,17 @@ static scriba_list_t *getAllProjects();
 static scriba_list_t *getProjectsByTitle(const char *title);
 static scriba_list_t *getProjectsByCompany(scriba_id_t id);
 static scriba_list_t *getProjectsByState(enum ScribaProjectState state);
+static scriba_list_t *getProjectsByTime(scriba_time_t start_time, enum ScribaTimeComp start_comp,
+                                        scriba_time_t mod_time, enum ScribaTimeComp mod_comp);
+static scriba_list_t *getProjectsByStateTime(enum ScribaProjectState state,
+                                             scriba_time_t start_time,
+                                             enum ScribaTimeComp start_comp,
+                                             scriba_time_t mod_time,
+                                             enum ScribaTimeComp mod_comp);
 static void addProject(scriba_id_t id, const char *title, const char *descr,
                        scriba_id_t company_id, enum ScribaProjectState state,
-                       enum ScribaCurrency currency, long long cost);
-static void updateProject(const struct ScribaProject *project);
+                       enum ScribaCurrency currency, long long cost, scriba_time_t start_time);
+static void updateProject(struct ScribaProject *project);
 static void removeProject(scriba_id_t id);
 static void free_project_data(struct ScribaProject *project);
 
@@ -176,6 +183,8 @@ static int internal_init(struct ScribaDBParamList *parList, struct ScribaDBFuncT
     fTbl->getProjectsByTitle = getProjectsByTitle;
     fTbl->getProjectsByCompany = getProjectsByCompany;
     fTbl->getProjectsByState = getProjectsByState;
+    fTbl->getProjectsByTime = getProjectsByTime;
+    fTbl->getProjectsByStateTime = getProjectsByStateTime;
     fTbl->addProject = addProject;
     fTbl->updateProject = updateProject;
     fTbl->removeProject = removeProject;
@@ -1124,9 +1133,89 @@ static scriba_list_t *getProjectsByState(enum ScribaProjectState state)
     return list;
 }
 
+static scriba_list_t *getProjectsByTime(scriba_time_t start_time, enum ScribaTimeComp start_comp,
+                                        scriba_time_t mod_time, enum ScribaTimeComp mod_comp)
+{
+    scriba_list_t *list = scriba_list_init();
+    struct MockProjectList *project = mockData.projects;
+
+    while (project != NULL)
+    {
+        if ((start_comp == SCRIBA_TIME_BEFORE) && (project->data->start_time >= start_time))
+        {
+            project = project->next;
+            continue;
+        }
+        if ((start_comp == SCRIBA_TIME_AFTER) && (project->data->start_time <= start_time))
+        {
+            project = project->next;
+            continue;
+        }
+        if ((mod_comp == SCRIBA_TIME_BEFORE) && (project->data->mod_time >= mod_time))
+        {
+            project = project->next;
+            continue;
+        }
+        if ((mod_comp == SCRIBA_TIME_AFTER) && (project->data->mod_time <= mod_time))
+        {
+            project = project->next;
+            continue;
+        }
+
+        scriba_list_add(list, project->data->id, project->data->title);
+        project = project->next;
+    }
+
+    return list;
+}
+
+static scriba_list_t *getProjectsByStateTime(enum ScribaProjectState state,
+                                             scriba_time_t start_time,
+                                             enum ScribaTimeComp start_comp,
+                                             scriba_time_t mod_time,
+                                             enum ScribaTimeComp mod_comp)
+{
+    scriba_list_t *list = scriba_list_init();
+    struct MockProjectList *project = mockData.projects;
+
+    while (project != NULL)
+    {
+        if (project->data->state != state)
+        {
+            project = project->next;
+            continue;
+        }
+        if ((start_comp == SCRIBA_TIME_BEFORE) && (project->data->start_time >= start_time))
+        {
+            project = project->next;
+            continue;
+        }
+        if ((start_comp == SCRIBA_TIME_AFTER) && (project->data->start_time <= start_time))
+        {
+            project = project->next;
+            continue;
+        }
+        if ((mod_comp == SCRIBA_TIME_BEFORE) && (project->data->mod_time >= mod_time))
+        {
+            project = project->next;
+            continue;
+        }
+        if ((mod_comp == SCRIBA_TIME_AFTER) && (project->data->mod_time <= mod_time))
+        {
+            project = project->next;
+            continue;
+        }
+
+        scriba_list_add(list, project->data->id, project->data->title);
+        project = project->next;
+    }
+
+    return list;
+}
+
 static void addProject(scriba_id_t id, const char *title, const char *descr,
                        scriba_id_t company_id, enum ScribaProjectState state,
-                       enum ScribaCurrency currency, long long cost)
+                       enum ScribaCurrency currency, long long cost, scriba_time_t start_time)
 {
     struct ScribaProject *new_project = (struct ScribaProject *)malloc(sizeof (struct ScribaProject));
     int len = 0;
@@ -1150,6 +1239,8 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
     new_project->state = state;
     new_project->currency = currency;
     new_project->cost = cost;
+    new_project->start_time = start_time;
+    new_project->mod_time = start_time;
 
     struct MockProjectList *project = mockData.projects;
     struct MockProjectList *last = NULL;
@@ -1174,7 +1265,7 @@ static void addProject(scriba_id_t id, const char *title, const char *descr,
     }
 }
 
-static void updateProject(const struct ScribaProject *project)
+static void updateProject(struct ScribaProject *project)
 {
     struct MockProjectList *cur_project = mockData.projects;
 

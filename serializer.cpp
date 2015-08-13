@@ -462,6 +462,8 @@ static fb::Offset<Project> serialize_project(scriba_id_t id, fb::FlatBufferBuild
     }
 
     prjb.add_cost(project->cost);
+    prjb.add_start_time(project->start_time);
+    prjb.add_mod_time(project->mod_time);
 
     scriba_freeProjectData(project);
     return prjb.Finish();
@@ -798,6 +800,8 @@ static bool deserialize_project(const Project *project, enum ScribaMergeStrategy
             updated_project.state = project_state;
             updated_project.currency = project_currency;
             updated_project.cost = project->cost();
+            updated_project.start_time = static_cast<scriba_time_t>(project->start_time());
+            updated_project.mod_time = static_cast<scriba_time_t>(project->mod_time());
 
             scriba_updateProject(&updated_project);
         }
@@ -816,7 +820,13 @@ static bool deserialize_project(const Project *project, enum ScribaMergeStrategy
                                 company_id,
                                 project_state,
                                 project_currency,
-                                project->cost());
+                                project->cost(),
+                                static_cast<scriba_time_t>(project->start_time()));
+        // write mod_time
+        ScribaProject *newProject = scriba_getProject(project_id);
+        newProject->mod_time = static_cast<scriba_time_t>(project->mod_time());
+        scriba_updateProject(newProject);
+        scriba_freeProjectData(newProject);
     }
 
     return false;

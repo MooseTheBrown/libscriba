@@ -28,6 +28,7 @@
 #include <CUnit/CUnit.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 void test_company()
 {
@@ -384,7 +385,7 @@ void test_project()
     // add test project and verify that it's been added correctly
     scriba_addProject("Test Project #1", "100 bottles of whisky",
                       companies->id, PROJECT_STATE_CONTRACT_SIGNED,
-                      SCRIBA_CURRENCY_RUB, 1000);
+                      SCRIBA_CURRENCY_RUB, 1000, 0);
 
     projects = scriba_getAllProjects();
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));
@@ -405,7 +406,7 @@ void test_project()
     // add another project
     scriba_addProject("Test Project #2", "1000 bottles of milk",
                       companies->id, PROJECT_STATE_REJECTED,
-                      SCRIBA_CURRENCY_USD, 300);
+                      SCRIBA_CURRENCY_USD, 300, 0);
 
     projects = scriba_getProjectsByCompany(companies->id);
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));
@@ -476,6 +477,93 @@ void test_project()
     clean_local_db();
 }
 
+void test_project_time()
+{
+    scriba_time_t start1_time = (scriba_time_t)time(NULL);
+    scriba_time_t start2_time = 0;
+    scriba_time_t start3_time = 0;
+    scriba_time_t mod1_time = 0;
+    scriba_time_t mod2_time = 0;
+    scriba_time_t mod3_time = 0;
+    scriba_id_t proj1_id;
+    scriba_id_t proj2_id;
+    scriba_id_t proj3_id;
+    scriba_list_t *companies = NULL;
+    scriba_list_t *projects = NULL;
+    struct ScribaProject *project1 = NULL;
+
+    scriba_id_create(&proj1_id);
+    scriba_id_create(&proj2_id);
+    scriba_id_create(&proj3_id);
+
+    // add test company
+    scriba_addCompany("Test company #1", "Test1 LLC", "Test Address 1",
+                      "12345", "111", "test1@test1.com");
+
+    companies = scriba_getAllCompanies();
+
+    scriba_addProjectWithID(proj1_id, "Test Project #1", "100 bottles of whisky",
+                            companies->id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_RUB, 1000, start1_time);
+
+    project1 = scriba_getProject(proj1_id);
+    // check start time
+    CU_ASSERT_EQUAL(start1_time, project1->start_time);
+    // verify that modification time is set to start time initially
+    CU_ASSERT_EQUAL(project1->start_time, project1->mod_time);
+
+    // update project state and verify that mod_time is updated automatically
+    sleep(1);
+    project1->state = PROJECT_STATE_PAYMENT;
+    scriba_updateProject(project1);
+    mod1_time = (scriba_time_t)time(NULL);
+    scriba_freeProjectData(project1);
+    project1 = scriba_getProject(proj1_id);
+    CU_ASSERT(project1->mod_time > start1_time);
+    scriba_freeProjectData(project1);
+
+    start2_time = start1_time + 100;
+    scriba_addProjectWithID(proj2_id, "Test Project #2", "1000 bottles of beer",
+                            companies->id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_RUB, 1000, start2_time);
+
+    start3_time = start2_time + 300;
+    scriba_addProjectWithID(proj3_id, "Test Project #2", "100 bottles of rum",
+                            companies->id, PROJECT_STATE_INITIAL,
+                            SCRIBA_CURRENCY_RUB, 1000, start3_time);
+
+    // projects started after start1_time (2 and 3)
+    projects = scriba_getProjectsByTime(start1_time, SCRIBA_TIME_AFTER, 0, SCRIBA_TIME_IGNORE);
+    CU_ASSERT_PTR_NOT_NULL(projects);
+    CU_ASSERT_PTR_NOT_NULL(projects->next);
+    CU_ASSERT(scriba_id_compare(&proj2_id, &(projects->id)) ||
+              scriba_id_compare(&proj3_id, &(projects->id)));
+    CU_ASSERT(scriba_id_compare(&proj2_id, &(projects->next->id)) ||
+              scriba_id_compare(&proj3_id, &(projects->next->id)));
+    scriba_list_delete(projects);
+    // projects started before start2_time (1)
+    projects = scriba_getProjectsByTime(start2_time, SCRIBA_TIME_BEFORE, 0, SCRIBA_TIME_IGNORE);
+    CU_ASSERT_PTR_NOT_NULL(projects);
+    CU_ASSERT(scriba_id_compare(&proj1_id, &(projects->id)));
+    scriba_list_delete(projects);
+    // projects started after start1_time and modified after start2_time (3)
+    projects = scriba_getProjectsByTime(start1_time, SCRIBA_TIME_AFTER,
+                                        start2_time, SCRIBA_TIME_AFTER);
+    CU_ASSERT_PTR_NOT_NULL(projects);
+    CU_ASSERT(scriba_id_compare(&proj3_id, &(projects->id)));
+    scriba_list_delete(projects);
+    // projects in initial state modified before start3_time (2)
+    projects = scriba_getProjectsByStateTime(PROJECT_STATE_INITIAL, 0, SCRIBA_TIME_IGNORE,
+                                             start3_time, SCRIBA_TIME_BEFORE);
+    CU_ASSERT_PTR_NOT_NULL(projects);
+    CU_ASSERT(scriba_id_compare(&proj2_id, &(projects->id)));
+    scriba_list_delete(projects);
+
+    scriba_list_delete(companies);
+
+    clean_local_db();
+}
+
 void test_event()
 {
     scriba_list_t *events = NULL;
@@ -511,10 +599,10 @@ void test_event()
 
     scriba_addProject("Test Project #1", "100 bottles of whisky",
                       companies->id, PROJECT_STATE_CONTRACT_SIGNED,
-                      SCRIBA_CURRENCY_RUB, 1000);
+                      SCRIBA_CURRENCY_RUB, 1000, 0);
     scriba_addProject("Test Project #2", "100 bottles of rum",
                       companies->id, PROJECT_STATE_CONTRACT_SIGNED,
-                      SCRIBA_CURRENCY_EUR, 1000);
+                      SCRIBA_CURRENCY_EUR, 1000, 0);
 
     projects = scriba_getAllProjects();
 
@@ -694,7 +782,7 @@ void test_create_with_id()
     scriba_id_t project_id;
     scriba_id_create(&project_id);
     scriba_addProjectWithID(project_id, "TestProject", "test project", company_id,
-                            PROJECT_STATE_OFFER, SCRIBA_CURRENCY_RUB, 1000);
+                            PROJECT_STATE_OFFER, SCRIBA_CURRENCY_RUB, 1000, 0);
     struct ScribaProject *project = scriba_getProject(project_id);
     CU_ASSERT_PTR_NOT_NULL(project);
     CU_ASSERT(scriba_id_compare(&project_id, &(project->id)));
@@ -1076,13 +1164,13 @@ void test_project_search()
 
     scriba_addProjectWithID(proj1_id, "Shipbuilding", "",
                             company_id, PROJECT_STATE_INITIAL,
-                            SCRIBA_CURRENCY_RUB, 10000);
+                            SCRIBA_CURRENCY_RUB, 10000, 0);
     scriba_addProjectWithID(proj2_id, "Looking at ships", "",
                             company_id, PROJECT_STATE_INITIAL,
-                            SCRIBA_CURRENCY_USD, 500);
+                            SCRIBA_CURRENCY_USD, 500, 0);
     scriba_addProjectWithID(proj3_id, "Fishing", "",
                             company_id, PROJECT_STATE_INITIAL,
-                            SCRIBA_CURRENCY_EUR, 100);
+                            SCRIBA_CURRENCY_EUR, 100, 0);
 
     projects = scriba_getProjectsByTitle("ship");
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));
@@ -1130,13 +1218,13 @@ void test_ru_project_search()
 
     scriba_addProjectWithID(proj1_id, "Кораблестроение", "",
                             company_id, PROJECT_STATE_INITIAL,
-                            SCRIBA_CURRENCY_RUB, 1000);
+                            SCRIBA_CURRENCY_RUB, 1000, 0);
     scriba_addProjectWithID(proj2_id, "Глазеем на корабли", "",
                             company_id, PROJECT_STATE_INITIAL,
-                            SCRIBA_CURRENCY_RUB, 1000);
+                            SCRIBA_CURRENCY_RUB, 1000, 0);
     scriba_addProjectWithID(proj3_id, "Рыбалка", "",
                             company_id, PROJECT_STATE_INITIAL,
-                            SCRIBA_CURRENCY_RUB, 1000);
+                            SCRIBA_CURRENCY_RUB, 1000, 0);
 
     projects = scriba_getProjectsByTitle("корабл");
     CU_ASSERT_FALSE(scriba_list_is_empty(projects));

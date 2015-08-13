@@ -266,10 +266,10 @@ static void create_test_data()
 
 
     scriba_addProjectWithID(project1_id, "TestProject1", "test project1", company1_id,
-                            PROJECT_STATE_PAYMENT, SCRIBA_CURRENCY_RUB, 1000);
+                            PROJECT_STATE_PAYMENT, SCRIBA_CURRENCY_RUB, 1000, 100);
     scriba_addProjectWithID(project2_id, "TestProject2", "test project2", company2_id,
                             PROJECT_STATE_CLIENT_INFORMED,
-                            SCRIBA_CURRENCY_USD, 2000);
+                            SCRIBA_CURRENCY_USD, 2000, 200);
 
     scriba_addEventWithID(event1_id, "Test event1", company1_id, poc1_id, project1_id,
                           EVENT_TYPE_CALL, "missed", (scriba_time_t)0, EVENT_STATE_CANCELLED);
@@ -338,6 +338,8 @@ static void verify_test_data()
     CU_ASSERT_EQUAL(project1->state, PROJECT_STATE_PAYMENT);
     CU_ASSERT_EQUAL(project1->currency, SCRIBA_CURRENCY_RUB);
     CU_ASSERT_EQUAL(project1->cost, 1000);
+    CU_ASSERT_EQUAL(project1->start_time, 100);
+    CU_ASSERT_EQUAL(project1->mod_time, 100);
     scriba_freeProjectData(project1);
 
     struct ScribaProject *project2 = scriba_getProject(project2_id);
@@ -349,6 +351,8 @@ static void verify_test_data()
     CU_ASSERT_EQUAL(project2->state, PROJECT_STATE_CLIENT_INFORMED);
     CU_ASSERT_EQUAL(project2->currency, SCRIBA_CURRENCY_USD);
     CU_ASSERT_EQUAL(project2->cost, 2000);
+    CU_ASSERT_EQUAL(project2->start_time, 200);
+    CU_ASSERT_EQUAL(project2->mod_time, 200);
     scriba_freeProjectData(project2);
 
     struct ScribaEvent *event1 = scriba_getEvent(event1_id);
@@ -404,10 +408,10 @@ static void create_ru_test_data()
 
 
     scriba_addProjectWithID(project1_id, "Проект1", "тестовый проект 1", company1_id,
-                            PROJECT_STATE_PAYMENT, SCRIBA_CURRENCY_RUB, 1000);
+                            PROJECT_STATE_PAYMENT, SCRIBA_CURRENCY_RUB, 1000, 100);
     scriba_addProjectWithID(project2_id, "Проект2", "тестовый проект 2", company2_id,
                             PROJECT_STATE_CLIENT_INFORMED,
-                            SCRIBA_CURRENCY_USD, 2000);
+                            SCRIBA_CURRENCY_USD, 2000, 200);
 
     scriba_addEventWithID(event1_id, "Событие1", company1_id, poc1_id, project1_id,
                           EVENT_TYPE_CALL, "отменено", (scriba_time_t)0, EVENT_STATE_CANCELLED);
@@ -475,6 +479,8 @@ static void verify_ru_test_data()
     CU_ASSERT_EQUAL(project1->state, PROJECT_STATE_PAYMENT);
     CU_ASSERT_EQUAL(project1->currency, SCRIBA_CURRENCY_RUB);
     CU_ASSERT_EQUAL(project1->cost, 1000);
+    CU_ASSERT_EQUAL(project1->start_time, 100);
+    CU_ASSERT_EQUAL(project1->mod_time, 100);
     scriba_freeProjectData(project1);
 
     struct ScribaProject *project2 = scriba_getProject(project2_id);
@@ -486,6 +492,8 @@ static void verify_ru_test_data()
     CU_ASSERT_EQUAL(project2->state, PROJECT_STATE_CLIENT_INFORMED);
     CU_ASSERT_EQUAL(project2->currency, SCRIBA_CURRENCY_USD);
     CU_ASSERT_EQUAL(project2->cost, 2000);
+    CU_ASSERT_EQUAL(project2->start_time, 200);
+    CU_ASSERT_EQUAL(project2->mod_time, 200);
     scriba_freeProjectData(project2);
 
     struct ScribaEvent *event1 = scriba_getEvent(event1_id);

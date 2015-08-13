@@ -106,6 +106,8 @@ table Project
     state:ProjectState;
     currency:Currency;
     cost:ulong;
+    start_time:long;
+    mod_time:long;
 }
 
 table Entries

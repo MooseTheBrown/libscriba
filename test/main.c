@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2014 Mikhail Sapozhnikov
+/*
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -51,6 +51,7 @@ int main()
     CU_add_test(frontend_test_suite, "Frontend company test", test_company);
     CU_add_test(frontend_test_suite, "Frontend POC test", test_poc);
     CU_add_test(frontend_test_suite, "Frontend project test", test_project);
+    CU_add_test(frontend_test_suite, "Frontend project time test", test_project_time);
     CU_add_test(frontend_test_suite, "Frontend event test", test_event);
     CU_add_test(frontend_test_suite, "Frontend create with ID test", test_create_with_id);
     CU_add_test(frontend_test_suite, "Frontend company search test", test_company_search);
@@ -71,6 +72,7 @@ int main()
     CU_add_test(sqlite_backend_test_suite, "SQLite backend company test", test_company);
     CU_add_test(sqlite_backend_test_suite, "SQLite backend POC test", test_poc);
     CU_add_test(sqlite_backend_test_suite, "SQLite backend project test", test_project);
+    CU_add_test(sqlite_backend_test_suite, "SQLite backend project time test", test_project_time);
     CU_add_test(sqlite_backend_test_suite, "SQLite backend event test", test_event);
     CU_add_test(sqlite_backend_test_suite,
                 "SQLite backend create with ID test",

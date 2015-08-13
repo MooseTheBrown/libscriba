@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Mikhail Sapozhnikov
+ * Copyright (C) 2015 Mikhail Sapozhnikov
  *
  * This file is part of libscriba.
  *
@@ -24,6 +24,7 @@
 void test_company();
 void test_poc();
 void test_project();
+void test_project_time();
 void test_event();
 void test_create_with_id();
 void test_company_search();

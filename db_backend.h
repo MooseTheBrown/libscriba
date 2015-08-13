@@ -62,9 +62,15 @@ struct ScribaDBFuncTbl
     scriba_list_t* (*getProjectsByTitle)(const char *);
     scriba_list_t* (*getProjectsByCompany)(scriba_id_t);
     scriba_list_t* (*getProjectsByState)(enum ScribaProjectState);
+    scriba_list_t* (*getProjectsByTime)(scriba_time_t, enum ScribaTimeComp,
+                                       scriba_time_t, enum ScribaTimeComp);
+    scriba_list_t* (*getProjectsByStateTime)(enum ScribaProjectState,
+                                             scriba_time_t, enum ScribaTimeComp,
+                                             scriba_time_t, enum ScribaTimeComp);
     void (*addProject)(scriba_id_t, const char *, const char *, scriba_id_t,
-                       enum ScribaProjectState, enum ScribaCurrency, long long);
-    void (*updateProject)(const struct ScribaProject *);
+                       enum ScribaProjectState, enum ScribaCurrency, long long,
+                       scriba_time_t);
+    void (*updateProject)(struct ScribaProject *);
     void (*removeProject)(scriba_id_t);
 
     // event-related functions

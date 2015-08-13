@@ -22,6 +22,7 @@
 #include "db_backend.h"
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 extern struct ScribaDBFuncTbl *fTbl;
 
@@ -55,28 +56,61 @@ scriba_list_t *scriba_getProjectsByState(enum ScribaProjectState state)
     return (fTbl->getProjectsByState(state));
 }
 
+// get projects by time
+scriba_list_t *scriba_getProjectsByTime(scriba_time_t start_time, enum ScribaTimeComp start_comp,
+                                        scriba_time_t mod_time, enum ScribaTimeComp mod_comp)
+{
+    return (fTbl->getProjectsByTime(start_time, start_comp, mod_time, mod_comp));
+}
+
+// get projects by state and time
+scriba_list_t *scriba_getProjectsByStateTime(enum ScribaProjectState state,
+                                             scriba_time_t start_time,
+                                             enum ScribaTimeComp start_comp,
+                                             scriba_time_t mod_time,
+                                             enum ScribaTimeComp mod_comp)
+{
+    return (fTbl->getProjectsByStateTime(state, start_time, start_comp, mod_time, mod_comp));
+}
+
 // add project to the database
 void scriba_addProject(const char *title, const char *descr, scriba_id_t company_id,
                        enum ScribaProjectState state, enum ScribaCurrency currency,
-                       long long cost)
+                       long long cost, scriba_time_t start_time)
 {
     scriba_id_t id;
 
     scriba_id_create(&id);
-    fTbl->addProject(id, title, descr, company_id, state, currency, cost);
+    fTbl->addProject(id, title, descr, company_id, state, currency, cost, start_time);
 }
 
 // add project with given ID to the database
 void scriba_addProjectWithID(scriba_id_t id, const char *title, const char *descr,
                              scriba_id_t company_id, enum ScribaProjectState state,
-                             enum ScribaCurrency currency, long long cost)
+                             enum ScribaCurrency currency, long long cost,
+                             scriba_time_t start_time)
 {
-    fTbl->addProject(id, title, descr, company_id, state, currency, cost);
+    fTbl->addProject(id, title, descr, company_id, state, currency, cost, start_time);
 }
 
 // update project info
-void scriba_updateProject(const struct ScribaProject *project)
+void scriba_updateProject(struct ScribaProject *project)
 {
+    struct ScribaProject *old_project = NULL;
+
+    if (project == NULL)
+    {
+        return;
+    }
+
+    old_project = scriba_getProject(project->id);
+    if (old_project->state != project->state)
+    {
+        // project state is being changed, update mod_time
+        project->mod_time = (scriba_time_t)time(NULL);
+    }
+    scriba_freeProjectData(old_project);
+
     fTbl->updateProject(project);
 }
 
@@ -116,6 +150,8 @@ struct ScribaProject *scriba_copyProject(const struct ScribaProject *project)
     ret->state = project->state;
     ret->currency = project->currency;
     ret->cost = project->cost;
+    ret->start_time = project->start_time;
+    ret->mod_time = project->mod_time;
 
     return ret;
 }

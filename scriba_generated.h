@@ -210,6 +210,8 @@ struct Project : private flatbuffers::Table {
   int8_t state() const { return GetField<int8_t>(12, 0); }
   int8_t currency() const { return GetField<int8_t>(14, 0); }
   uint64_t cost() const { return GetField<uint64_t>(16, 0); }
+  int64_t start_time() const { return GetField<int64_t>(18, 0); }
+  int64_t mod_time() const { return GetField<int64_t>(20, 0); }
 };
 
 struct ProjectBuilder {
@@ -222,12 +224,16 @@ struct ProjectBuilder {
   void add_state(int8_t state) { fbb_.AddElement<int8_t>(12, state, 0); }
   void add_currency(int8_t currency) { fbb_.AddElement<int8_t>(14, currency, 0); }
   void add_cost(uint64_t cost) { fbb_.AddElement<uint64_t>(16, cost, 0); }
+  void add_start_time(int64_t start_time) { fbb_.AddElement<int64_t>(18, start_time, 0); }
+  void add_mod_time(int64_t mod_time) { fbb_.AddElement<int64_t>(20, mod_time, 0); }
   ProjectBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
-  flatbuffers::Offset<Project> Finish() { return flatbuffers::Offset<Project>(fbb_.EndTable(start_, 7)); }
+  flatbuffers::Offset<Project> Finish() { return flatbuffers::Offset<Project>(fbb_.EndTable(start_, 9)); }
 };
 
-inline flatbuffers::Offset<Project> CreateProject(flatbuffers::FlatBufferBuilder &_fbb, const ID *id, flatbuffers::Offset<flatbuffers::String> title, flatbuffers::Offset<flatbuffers::String> descr, const ID *company_id, int8_t state, int8_t currency, uint64_t cost) {
+inline flatbuffers::Offset<Project> CreateProject(flatbuffers::FlatBufferBuilder &_fbb, const ID *id, flatbuffers::Offset<flatbuffers::String> title, flatbuffers::Offset<flatbuffers::String> descr, const ID *company_id, int8_t state, int8_t currency, uint64_t cost, int64_t start_time, int64_t mod_time) {
   ProjectBuilder builder_(_fbb);
+  builder_.add_mod_time(mod_time);
+  builder_.add_start_time(start_time);
   builder_.add_cost(cost);
   builder_.add_company_id(company_id);
   builder_.add_descr(descr);
