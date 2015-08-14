@@ -70,10 +70,10 @@ public class EventTest {
         // add projects
         ScribaDB.addProject("Project 1", "Doing nothing",
                             _company1_id, Project.State.EXECUTION,
-                            Project.Currency.RUB, 1000);
+                            Project.Currency.RUB, 1000, 100);
         ScribaDB.addProject("Project 2", "Salt",
                             _company2_id, Project.State.PAYMENT,
-                            Project.Currency.RUB, 1000);
+                            Project.Currency.RUB, 1000, 100);
         DataDescriptor[] projects = ScribaDB.getProjectsByCompany(_company1_id);
         _project1_id = projects[0].id;
         projects = ScribaDB.getProjectsByCompany(_company2_id);

@@ -97,8 +97,12 @@ public final class ScribaDB {
     public static native DataDescriptor[] getProjectsByTitle(String title);
     public static native DataDescriptor[] getProjectsByCompany(UUID company_id);
     public static native DataDescriptor[] getProjectsByState(byte state);
+    public static native DataDescriptor[] getProjectsByTime(long start_time, byte start_comp,
+                                                            long mod_time, byte mod_comp);
+    public static native DataDescriptor[] getProjectsByStateTime(byte state,
+        long start_time, byte start_comp, long mod_time, byte mod_comp);
     public static native void addProject(String title, String descr, UUID company_id, byte state,
-                                         byte currency, long cost);
+                                         byte currency, long cost, long start_time);
     public static native void updateProject(Project project);
     public static native void removeProject(UUID id);
 

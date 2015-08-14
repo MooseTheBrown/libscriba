@@ -65,7 +65,7 @@ public class SerializerTest {
 
         ScribaDB.addProject("Project 1", "Doing nothing",
                             _company_id, Project.State.EXECUTION,
-                            Project.Currency.RUB, 1000);
+                            Project.Currency.RUB, 1000, 100);
         DataDescriptor[] projects = ScribaDB.getProjectsByCompany(_company_id);
         _project_id = projects[0].id;
 

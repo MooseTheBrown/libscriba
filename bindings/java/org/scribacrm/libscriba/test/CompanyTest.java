@@ -151,7 +151,7 @@ public class CompanyTest {
         UUID poc2_id = poc2[0].id;
 
         ScribaDB.addProject("SW development", "Just moosing around really", company_id,
-                            Project.State.EXECUTION, Project.Currency.RUB, 1000);
+                            Project.State.EXECUTION, Project.Currency.RUB, 1000, 100);
 
         DataDescriptor[] project = ScribaDB.getProjectsByCompany(company_id);
         UUID project_id = project[0].id;

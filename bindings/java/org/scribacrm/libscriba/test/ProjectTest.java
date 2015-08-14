@@ -64,13 +64,13 @@ public class ProjectTest {
         // add projects
         ScribaDB.addProject("Project 1", "Doing nothing",
                             _company1_id, Project.State.EXECUTION,
-                            Project.Currency.RUB, 1000);
+                            Project.Currency.RUB, 1000, 5000);
         ScribaDB.addProject("Project 2", "Selling useless stuff",
                             _company1_id, Project.State.OFFER,
-                            Project.Currency.USD, 500);
+                            Project.Currency.USD, 500, 6000);
         ScribaDB.addProject("Project 3", "Selling other useless stuff",
                             _company2_id, Project.State.REJECTED,
-                            Project.Currency.EUR, 400);
+                            Project.Currency.EUR, 400, 7000);
     }
 
     @After
@@ -115,6 +115,8 @@ public class ProjectTest {
         assertEquals("Project state match", Project.State.REJECTED, project.state);
         assertEquals("Project currency match", Project.Currency.EUR, project.currency);
         assertEquals("Project cost match", 400, project.cost);
+        assertEquals("Project start time match", 7000, project.start_time);
+        assertEquals("Project mod time match", 7000, project.mod_time);
     }
 
     @Test
@@ -148,7 +150,8 @@ public class ProjectTest {
         Project updated_project = new Project(project.id, project.title,
                                               project.descr, project.company_id,
                                               Project.State.PAYMENT,
-                                              Project.Currency.EUR, 3000);
+                                              Project.Currency.EUR, 3000,
+                                              100, 200);
         ScribaDB.updateProject(updated_project);
         Project check_project = ScribaDB.getProject(projects[0].id);
         assertEquals("project state should be updated", Project.State.PAYMENT,
@@ -161,5 +164,38 @@ public class ProjectTest {
         ScribaDB.removeProject(projects[0].id);
         projects = ScribaDB.getProjectsByCompany(_company2_id);
         assertEquals("no projects should remain for company 2", null, projects);
+    }
+
+    @Test
+    public void testTime() {
+        DataDescriptor[] projects = ScribaDB.getProjectsByTime(5000, Project.TimeComp.AFTER,
+            0, Project.TimeComp.IGNORE);
+        assertEquals("2 projects found", 2, projects.length);
+
+        projects = ScribaDB.getProjectsByTime(7000, Project.TimeComp.BEFORE,
+            5000, Project.TimeComp.AFTER);
+        assertEquals("1 project found", 1, projects.length);
+
+        Project project = ScribaDB.getProject(projects[0].id);
+        assertTrue("project 2 found", project.title.equals("Project 2"));
+        long old_mod_time = project.mod_time;
+        Project updatedProject = new Project(project.id, project.title, project.descr,
+            project.company_id, Project.State.PAYMENT, project.currency, project.cost,
+            project.start_time, project.mod_time);
+        ScribaDB.updateProject(updatedProject);
+        // mod_time should be updated automatically
+        project = ScribaDB.getProject(projects[0].id);
+        assertTrue("mod_time updated", project.mod_time != old_mod_time);
+
+        ScribaDB.addProject("Project 4", "Yet another project",
+            _company2_id, Project.State.PAYMENT,
+            Project.Currency.EUR, 400, 10000);
+        ScribaDB.addProject("Project 5", "Yet another project",
+            _company2_id, Project.State.PAYMENT,
+            Project.Currency.EUR, 400, 1000);
+
+        projects = ScribaDB.getProjectsByStateTime(Project.State.PAYMENT,
+            5000, Project.TimeComp.AFTER, 0, Project.TimeComp.IGNORE);
+        assertEquals("2 projects found", 2, projects.length);
     }
 }

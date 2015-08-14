@@ -1348,7 +1348,7 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject(JNIEn
     }
 
     project_ctor_id = (*env)->GetMethodID(env, project_class, "<init>",
-                                          "(JJLjava/lang/String;Ljava/lang/String;JJBBJ)V");
+                                          "(JJLjava/lang/String;Ljava/lang/String;JJBBJJJ)V");
     if (project_ctor_id == NULL)
     {
         goto exit;
@@ -1364,7 +1364,9 @@ JNIEXPORT jobject JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProject(JNIEn
                                      (jlong)(project->company_id._low),
                                      (jbyte)(project->state),
                                      (jbyte)(project->currency),
-                                     (jlong)(project->cost));
+                                     (jlong)(project->cost),
+                                     (jlong)(project->start_time),
+                                     (jlong)(project->mod_time));
 
 exit:
     if (project != NULL)
@@ -1452,6 +1454,47 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjects
     return java_projects;
 }
 
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByTime
+    (JNIEnv *env, jclass this, jlong start_time, jbyte start_comp,
+     jlong mod_time, jbyte mod_comp)
+{
+    jobjectArray java_projects = NULL;
+    scriba_list_t *projects = scriba_getProjectsByTime((scriba_time_t)start_time,
+        (enum ScribaTimeComp)start_comp,
+        (scriba_time_t)mod_time,
+        (enum ScribaTimeComp)mod_comp);
+
+    if (projects == NULL)
+    {
+        return NULL;
+    }
+
+    java_projects = scriba_list_to_data_descr_array(env, this, projects);
+    scriba_list_delete(projects);
+    return java_projects;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByStateTime
+  (JNIEnv *env, jclass this, jbyte state, jlong start_time, jbyte start_comp,
+   jlong mod_time, jbyte mod_comp)
+{
+    jobjectArray java_projects = NULL;
+    scriba_list_t *projects = scriba_getProjectsByStateTime((enum ScribaProjectState)state,
+        (scriba_time_t)start_time,
+        (enum ScribaTimeComp)start_comp,
+        (scriba_time_t)mod_time,
+        (enum ScribaTimeComp)mod_comp);
+
+    if (projects == NULL)
+    {
+        return NULL;
+    }
+
+    java_projects = scriba_list_to_data_descr_array(env, this, projects);
+    scriba_list_delete(projects);
+    return java_projects;
+}
+
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject(JNIEnv *env,
                                                                         jclass this,
                                                                         jstring java_title,
@@ -1459,7 +1502,8 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject(JNIEnv *
                                                                         jobject company_id,
                                                                         jbyte state,
                                                                         jbyte currency,
-                                                                        jlong cost)
+                                                                        jlong cost,
+                                                                        jlong start_time)
 {
     char *native_title = java_string_to_utf8(env, this, java_title);
     char *native_descr = java_string_to_utf8(env, this, java_descr);
@@ -1468,7 +1512,7 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject(JNIEnv *
     UUID_to_scriba_id(env, company_id, &native_company_id);
     scriba_addProject(native_title, native_descr, native_company_id,
                       (enum ScribaProjectState)state, (enum ScribaCurrency)currency,
-                      (long long)cost);
+                      (long long)cost, (scriba_time_t)start_time);
 
     if (native_title != NULL)
     {
@@ -1561,6 +1605,20 @@ JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_updateProject(JNIEn
         goto exit;
     }
     project->cost = (long long)((*env)->GetLongField(env, java_project, fieldID));
+
+    fieldID = (*env)->GetFieldID(env, project_class, "start_time", "J");
+    if (fieldID == NULL)
+    {
+        goto exit;
+    }
+    project->start_time = (scriba_time_t)((*env)->GetLongField(env, java_project, fieldID));
+
+    fieldID = (*env)->GetFieldID(env, project_class, "mod_time", "J");
+    if (fieldID == NULL)
+    {
+        goto exit;
+    }
+    project->mod_time = (scriba_time_t)((*env)->GetLongField(env, java_project, fieldID));
 
     scriba_updateProject(project);
 

@@ -201,11 +201,27 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjects
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
+ * Method:    getProjectsByTime
+ * Signature: (JBJB)[Lorg/scribacrm/libscriba/DataDescriptor;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByTime
+  (JNIEnv *, jclass, jlong, jbyte, jlong, jbyte);
+
+/*
+ * Class:     org_scribacrm_libscriba_ScribaDB
+ * Method:    getProjectsByStateTime
+ * Signature: (BJBJB)[Lorg/scribacrm/libscriba/DataDescriptor;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_getProjectsByStateTime
+  (JNIEnv *, jclass, jbyte, jlong, jbyte, jlong, jbyte);
+
+/*
+ * Class:     org_scribacrm_libscriba_ScribaDB
  * Method:    addProject
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/util/UUID;BBJ)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/util/UUID;BBJJ)V
  */
 JNIEXPORT void JNICALL Java_org_scribacrm_libscriba_ScribaDB_addProject
-  (JNIEnv *, jclass, jstring, jstring, jobject, jbyte, jbyte, jlong);
+  (JNIEnv *, jclass, jstring, jstring, jobject, jbyte, jbyte, jlong, jlong);
 
 /*
  * Class:     org_scribacrm_libscriba_ScribaDB
