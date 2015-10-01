@@ -301,7 +301,8 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                start_time = (scriba_time_t)time(NULL) - a - b - c;
+                start_time = (scriba_time_t)time(NULL) - (2628000 * 6) + (a * 86400) +
+                    (b * 3600) + (c * 60);
 
                 scriba_addProjectWithID(proj_id, title, descr, company_id, state,
                                         currency, cost, start_time);
