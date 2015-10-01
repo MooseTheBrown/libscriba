@@ -61,6 +61,7 @@ struct
 // create new data array part, returns new part id
 static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t *part);
 // find data array part
+// returns pointer to newly allocated data_array_part, which has to be freed by caller
 static data_array_part *get_data_array_part(JNIEnv *env, long id);
 // remove data array part
 static void remove_data_array_part(JNIEnv *env, long id);
@@ -81,6 +82,7 @@ static void UUID_to_scriba_id(JNIEnv *env, jobject uuid, scriba_id_t *id);
 static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t *part)
 {
     data_array_part *new_part = NULL;
+    long ret_new_id = NONEXT;
 
     (*env)->MonitorEnter(env, part_list.sync_obj);
 
@@ -91,6 +93,7 @@ static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t 
         part_list.list_size = 1;
         new_part = &(part_list.list[0]);
         new_part->id = part_list.list_size - 1;
+        ret_new_id = new_part->id;
     }
     else
     {
@@ -101,6 +104,7 @@ static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t 
             part_list.num_free_ids--;
             new_part = &(part_list.list[new_id]);
             new_part->id = new_id;
+            ret_new_id = new_id;
         }
         else
         {
@@ -110,6 +114,7 @@ static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t 
                                                         sizeof (data_array_part) * part_list.list_size);
             new_part = &(part_list.list[part_list.list_size - 1]);
             new_part->id = part_list.list_size - 1;
+            ret_new_id = new_part->id;
         }
     }
 
@@ -129,7 +134,7 @@ static long add_data_array_part(JNIEnv *env, scriba_list_t *data, scriba_list_t 
 
     (*env)->MonitorExit(env, part_list.sync_obj);
 
-    return new_part->id;
+    return ret_new_id;
 }
 
 static data_array_part *get_data_array_part(JNIEnv *env, long id)
@@ -140,7 +145,16 @@ static data_array_part *get_data_array_part(JNIEnv *env, long id)
 
     if (id < part_list.list_size)
     {
-        part = &(part_list.list[id]);
+        /* Cannot simply return pointer to data_array_part contained in
+         * the list because the list might be reallocated in add_data_array_part(),
+         * in which case pointer becomes invalid. Need to create a copy of data_array_part
+         * with the same id and same scriba_list_t pointers
+         */
+        data_array_part *list_part = &(part_list.list[id]);
+        part = (data_array_part *)malloc(sizeof (data_array_part));
+        part->id = list_part->id;
+        part->data = list_part->data;
+        part->part = list_part->part;
     }
 
     (*env)->MonitorExit(env, part_list.sync_obj);
@@ -440,6 +454,7 @@ static scriba_list_t *data_descr_array_to_scriba_list(JNIEnv *env, jclass this,
             {
                 scriba_list_add(scriba_list, item->id, NULL);
             }
+            free(part);
 
             (*env)->DeleteLocalRef(env, data_descr);
             break;
@@ -2084,6 +2099,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_scribacrm_libscriba_ScribaDB_next(JNIEnv
     // Array part is being transferred to Java, so remove it.
     // scriba_list_to_data_descr_array() may have already created new part
     remove_data_array_part(env, part->id);
+    free(part);
 
     return array;
 }
