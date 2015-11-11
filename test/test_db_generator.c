@@ -315,7 +315,8 @@ int main(int argc, char **argv)
                     char descr[50];
                     enum ScribaEventType type;
                     char outcome[50];
-                    scriba_time_t timestamp = (scriba_time_t)time(NULL) + a + b + c + d;
+                    scriba_time_t timestamp = (scriba_time_t)time(NULL) + a * 3600 +
+                        b * 60 + c * 60 + d * 3600;
                     enum ScribaEventState state;
 
                     snprintf(descr, 50, "Event %d-%d-%d-%d", a + 1, b + 1, c + 1, d + 1);

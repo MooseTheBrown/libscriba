@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 
 
@@ -989,6 +990,7 @@ static scriba_list_t *eventSearch(const char *query, scriba_id_t id)
     scriba_list_t *events = scriba_list_init();
     sqlite3_stmt *stmt = NULL;
     void *id_blob = NULL;
+    time_t cur_time = time(NULL);
 
     if ((data == NULL) || (query == NULL))
     {
@@ -1007,6 +1009,14 @@ static scriba_list_t *eventSearch(const char *query, scriba_id_t id)
                           id_blob,
                           SCRIBA_ID_BLOB_SIZE,
                           SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 2, (sqlite_int64)cur_time) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 3, (sqlite_int64)cur_time) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1155,7 +1165,9 @@ static scriba_list_t *getAllEvents()
 {
     scriba_list_t *events = scriba_list_init();
     sqlite3_stmt *stmt = NULL;
-    char query[] = "SELECT id,descr FROM Events";
+    char query[] = "SELECT id,descr FROM Events "
+                   "ORDER BY (timestamp > ?) DESC, (abs(timestamp-?)) ASC";
+    time_t cur_time = time(NULL);
 
     if (data == NULL)
     {
@@ -1164,6 +1176,15 @@ static scriba_list_t *getAllEvents()
 
     // prepare query
     if (sqlite3_prepare_v2(data->db, query, -1, &stmt, NULL) != SQLITE_OK)
+    {
+        goto exit;
+    }
+
+    if (sqlite3_bind_int64(stmt, 1, (sqlite_int64)cur_time) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 2, (sqlite_int64)cur_time) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1220,7 +1241,9 @@ static scriba_list_t *getEventsByDescr(const char *descr)
     scriba_list_t *events = scriba_list_init();
     char *search = str_for_like_op(descr);
     sqlite3_stmt *stmt = NULL;
-    char query[] = "SELECT id,descr FROM Events WHERE descr LIKE ?";
+    char query[] = "SELECT id,descr FROM Events WHERE descr LIKE ? "
+                   "ORDER BY (timestamp > ?) DESC, (abs(timestamp-?)) ASC";
+    time_t cur_time = time(NULL);
 
     if (data == NULL)
     {
@@ -1234,6 +1257,14 @@ static scriba_list_t *getEventsByDescr(const char *descr)
     }
 
     if (sqlite3_bind_text(stmt, 1, search, -1, SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 2, (sqlite_int64)cur_time) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 3, (sqlite_int64)cur_time) != SQLITE_OK)
     {
         goto exit;
     }
@@ -1291,24 +1322,29 @@ exit:
 
 static scriba_list_t *getEventsByCompany(scriba_id_t id)
 {
-    return eventSearch("SELECT id,descr FROM Events WHERE company_id=?", id);
+    return eventSearch("SELECT id,descr FROM Events WHERE company_id=? "
+                       "ORDER BY (timestamp > ?) DESC, (abs(timestamp-?)) ASC", id);
 }
 
 static scriba_list_t *getEventsByPOC(scriba_id_t id)
 {
-    return eventSearch("SELECT id,descr FROM Events WHERE poc_id=?", id);
+    return eventSearch("SELECT id,descr FROM Events WHERE poc_id=? "
+                       "ORDER BY (timestamp > ?) DESC, (abs(timestamp-?)) ASC", id);
 }
 
 static scriba_list_t *getEventsByProject(scriba_id_t id)
 {
-    return eventSearch("SELECT id,descr FROM Events WHERE project_id=?", id);
+    return eventSearch("SELECT id,descr FROM Events WHERE project_id=? "
+                       "ORDER BY (timestamp > ?) DESC, (abs(timestamp-?)) ASC", id);
 }
 
 static scriba_list_t *getEventsByState(enum ScribaEventState state)
 {
     scriba_list_t *events = scriba_list_init();
     sqlite3_stmt *stmt = NULL;
-    char query[] = "SELECT id,descr FROM Events WHERE state=?";
+    char query[] = "SELECT id,descr FROM Events WHERE state=? "
+                   "ORDER BY (timestamp > ?) DESC, (abs(timestamp-?)) ASC";
+    time_t cur_time = time(NULL);
 
     if ((data == NULL) || (query == NULL))
     {
@@ -1322,6 +1358,14 @@ static scriba_list_t *getEventsByState(enum ScribaEventState state)
     }
 
     if (sqlite3_bind_int64(stmt, 1, (sqlite_int64)state) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 2, (sqlite_int64)cur_time) != SQLITE_OK)
+    {
+        goto exit;
+    }
+    if (sqlite3_bind_int64(stmt, 3, (sqlite_int64)cur_time) != SQLITE_OK)
     {
         goto exit;
     }
